@@ -25,6 +25,10 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.maps.android.collections.GroundOverlayManager
+import com.google.maps.android.collections.MarkerManager
+import com.google.maps.android.collections.PolygonManager
+import com.google.maps.android.collections.PolylineManager
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMainBinding
@@ -36,6 +40,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var paradaSelecionada: Parada? = null
 
     private var currentKmlLayer: com.google.maps.android.data.kml.KmlLayer? = null
+
+    private lateinit var markerManager: MarkerManager
+    private lateinit var busMarkerCollection: MarkerManager.Collection
+
+    private lateinit var polygonManager: PolygonManager
+    private lateinit var polylineManager: PolylineManager
+    private lateinit var groundOverlayManager: GroundOverlayManager
 
     private val viewModel: MapViewModel by viewModels {
         MapViewModelFactory(OnibusRepositoryImpl(RetrofitClient.api))
@@ -86,18 +97,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         binding.btnCorredores.setOnClickListener {
-            val opcoes = arrayOf("Ver Apenas Corredores", "Ver Mapa Geral (Vias + Trânsito)", "Limpar Mapa")
+            val opcoes =
+                arrayOf(
+                    "Ver Apenas Corredores",
+                    "Ver Outras Vias (Ruas/Avs)",
+                    "Ver Trânsito Geral (Tudo)",
+                    "Limpar Mapa",
+                )
 
             AlertDialog.Builder(this)
                 .setTitle("Camadas de Trânsito")
                 .setItems(opcoes) { _, which ->
+                    if (which != 3) {
+                        Toast.makeText(this, "Baixando camada do mapa... aguarde.", Toast.LENGTH_SHORT).show()
+                    }
+
                     when (which) {
                         0 -> viewModel.carregarMapaCorredores()
-                        1 -> {
-                            Toast.makeText(this, "Baixando mapa completo... isso pode demorar um pouco.", Toast.LENGTH_LONG).show()
-                            viewModel.carregarMapaGeral()
-                        }
-                        2 -> {
+                        1 -> viewModel.carregarMapaOutrasVias()
+                        2 -> viewModel.carregarMapaGeral()
+                        3 -> {
                             currentKmlLayer?.removeLayerFromMap()
                             currentKmlLayer = null
                             Toast.makeText(this, "Camadas removidas.", Toast.LENGTH_SHORT).show()
@@ -121,20 +140,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
+
+        markerManager = MarkerManager(map)
+        polygonManager = PolygonManager(map)
+        polylineManager = PolylineManager(map)
+        groundOverlayManager = GroundOverlayManager(map)
+
+        busMarkerCollection = markerManager.newCollection()
+
         val saoPaulo = LatLng(-23.5505, -46.6333)
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(saoPaulo, 12f))
         map.uiSettings.isZoomControlsEnabled = true
 
-        map.setOnMarkerClickListener { marker ->
+        busMarkerCollection.setOnMarkerClickListener { marker ->
             val tag = marker.tag
 
             if (tag is Parada) {
                 paradaSelecionada = tag
-
                 Toast.makeText(this, "Buscando previsões...", Toast.LENGTH_SHORT).show()
                 viewModel.buscarPrevisaoDaParada(tag.codigo)
-
-                false
+                true
             } else {
                 false
             }
@@ -157,31 +182,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
             listaOnibus.forEach { onibus ->
                 val marker =
-                    googleMap?.addMarker(
+                    busMarkerCollection.addMarker(
                         MarkerOptions()
                             .position(LatLng(onibus.latitude, onibus.longitude))
                             .title("${onibus.letreiro} - ${onibus.sentido}")
                             .snippet("Prefixo: ${onibus.prefixo}"),
-//                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus))
                     )
 
                 marker?.tag = "ONIBUS"
-
                 marker?.let { busMarkers.add(it) }
             }
         }
 
         viewModel.paradasList.observe(this) { listaParadas ->
-
             listaParadas.forEach { parada ->
                 val marker =
-                    googleMap?.addMarker(
+                    busMarkerCollection.addMarker(
                         MarkerOptions()
                             .position(LatLng(parada.latitude, parada.longitude))
                             .title("Parada: ${parada.nome}")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)),
                     )
-
                 marker?.tag = parada
             }
         }
@@ -217,7 +238,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 try {
                     currentKmlLayer?.removeLayerFromMap()
 
-                    val layer = com.google.maps.android.data.kml.KmlLayer(googleMap, inputStream, applicationContext)
+                    val layer =
+                        com.google.maps.android.data.kml.KmlLayer(
+                            googleMap,
+                            inputStream,
+                            applicationContext,
+                            markerManager,
+                            polygonManager,
+                            polylineManager,
+                            groundOverlayManager,
+                            null,
+                        )
 
                     layer.addLayerToMap()
                     currentKmlLayer = layer

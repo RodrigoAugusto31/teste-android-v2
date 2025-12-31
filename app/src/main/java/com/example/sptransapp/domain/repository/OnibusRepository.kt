@@ -22,4 +22,6 @@ interface OnibusRepository {
     suspend fun buscarKmlCorredores(): java.io.InputStream?
 
     suspend fun buscarKmlGeral(): java.io.InputStream?
+
+    suspend fun buscarKmlOutrasVias(): java.io.InputStream?
 }

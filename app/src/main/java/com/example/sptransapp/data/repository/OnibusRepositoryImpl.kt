@@ -175,4 +175,12 @@ class OnibusRepositoryImpl(
         }
         return null
     }
+
+    override suspend fun buscarKmlOutrasVias(): java.io.InputStream? {
+        val response = api.getOutrasViasKMZ()
+        if (response.isSuccessful && response.body() != null) {
+            return KmlHelper.extractKmlFromKmz(response.body()!!)
+        }
+        return null
+    }
 }

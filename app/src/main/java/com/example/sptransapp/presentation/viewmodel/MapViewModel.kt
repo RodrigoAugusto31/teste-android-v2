@@ -191,6 +191,23 @@ class MapViewModel(
         }
     }
 
+    fun carregarMapaOutrasVias() {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val inputStream =
+                    withContext(ioDispatcher) {
+                        repository.buscarKmlOutrasVias()
+                    }
+                _kmlData.value = inputStream
+            } catch (e: Exception) {
+                _errorMessage.value = "Erro ao baixar mapa de vias: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun stopRefresh() {
         refreshJob?.cancel()
     }

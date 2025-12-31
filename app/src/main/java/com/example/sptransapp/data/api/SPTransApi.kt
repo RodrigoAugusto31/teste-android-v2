@@ -48,4 +48,7 @@ interface SPTransApi {
 
     @GET("KMZ")
     suspend fun getKmzGeral(): Response<ResponseBody>
+
+    @GET("KMZ/OutrasVias")
+    suspend fun getOutrasViasKMZ(): Response<ResponseBody>
 }
