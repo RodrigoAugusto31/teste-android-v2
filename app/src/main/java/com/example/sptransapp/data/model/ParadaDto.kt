@@ -7,5 +7,5 @@ data class ParadaDto(
     @SerializedName("np") val nomeParada: String,
     @SerializedName("ed") val endereco: String?,
     @SerializedName("py") val latitude: Double,
-    @SerializedName("px") val longitude: Double
+    @SerializedName("px") val longitude: Double,
 )

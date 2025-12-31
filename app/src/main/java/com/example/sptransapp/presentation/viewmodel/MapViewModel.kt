@@ -20,9 +20,8 @@ import kotlinx.coroutines.withContext
 
 class MapViewModel(
     private val repository: OnibusRepository,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
-
     private val _onibusList = MutableLiveData<List<Onibus>>()
     val onibusList: LiveData<List<Onibus>> = _onibusList
 
@@ -52,26 +51,27 @@ class MapViewModel(
     private fun startAutoRefresh(action: suspend () -> List<Onibus>) {
         refreshJob?.cancel()
 
-        refreshJob = viewModelScope.launch {
-            _isLoading.value = true
+        refreshJob =
+            viewModelScope.launch {
+                _isLoading.value = true
 
-            while (isActive) {
-                try {
-                    val resultado = withContext(ioDispatcher) {
-                        action()
+                while (isActive) {
+                    try {
+                        val resultado =
+                            withContext(ioDispatcher) {
+                                action()
+                            }
+                        _onibusList.value = resultado
+                        _errorMessage.value = null
+                    } catch (e: Exception) {
+                        _errorMessage.value = "Erro na atualização: ${e.message}"
+                    } finally {
+                        _isLoading.value = false
                     }
-                    _onibusList.value = resultado
-                    _errorMessage.value = null
 
-                } catch (e: Exception) {
-                    _errorMessage.value = "Erro na atualização: ${e.message}"
-                } finally {
-                    _isLoading.value = false
+                    delay(15_000)
                 }
-
-                delay(15_000)
             }
-        }
     }
 
     fun buscarOnibus() {
@@ -88,9 +88,10 @@ class MapViewModel(
 
         viewModelScope.launch {
             try {
-                val resultado = withContext(ioDispatcher) {
-                    repository.buscarLinhas(termo)
-                }
+                val resultado =
+                    withContext(ioDispatcher) {
+                        repository.buscarLinhas(termo)
+                    }
                 _linhasEncontradas.value = resultado
             } catch (e: Exception) {
                 _errorMessage.value = "Erro na busca: ${e.message}"
@@ -111,9 +112,10 @@ class MapViewModel(
     private fun carregarParadas(codigoLinha: Int) {
         viewModelScope.launch {
             try {
-                val resultado = withContext(ioDispatcher) {
-                    repository.buscarParadasPorLinha(codigoLinha)
-                }
+                val resultado =
+                    withContext(ioDispatcher) {
+                        repository.buscarParadasPorLinha(codigoLinha)
+                    }
                 _paradasList.value = resultado
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -125,9 +127,10 @@ class MapViewModel(
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val resultado = withContext(ioDispatcher) {
-                    repository.buscarPrevisaoParada(codigoParada)
-                }
+                val resultado =
+                    withContext(ioDispatcher) {
+                        repository.buscarPrevisaoParada(codigoParada)
+                    }
                 _previsoes.value = resultado
             } catch (e: Exception) {
                 _errorMessage.value = "Erro na previsão: ${e.message}"
@@ -141,9 +144,10 @@ class MapViewModel(
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val resultado = withContext(ioDispatcher) {
-                    repository.buscarCorredores()
-                }
+                val resultado =
+                    withContext(ioDispatcher) {
+                        repository.buscarCorredores()
+                    }
                 _corredores.value = resultado
             } catch (e: Exception) {
                 _errorMessage.value = "Erro ao buscar corredores: ${e.message}"
@@ -157,9 +161,10 @@ class MapViewModel(
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val inputStream = withContext(ioDispatcher) {
-                    repository.buscarKmlCorredores()
-                }
+                val inputStream =
+                    withContext(ioDispatcher) {
+                        repository.buscarKmlCorredores()
+                    }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
                 _errorMessage.value = "Erro ao baixar mapa de corredores: ${e.message}"
@@ -173,9 +178,10 @@ class MapViewModel(
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val inputStream = withContext(ioDispatcher) {
-                    repository.buscarKmlGeral()
-                }
+                val inputStream =
+                    withContext(ioDispatcher) {
+                        repository.buscarKmlGeral()
+                    }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
                 _errorMessage.value = "Erro ao baixar mapa geral: ${e.message}"

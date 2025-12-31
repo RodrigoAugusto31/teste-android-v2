@@ -6,11 +6,13 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import com.example.sptransapp.R
 import com.example.sptransapp.data.api.RetrofitClient
 import com.example.sptransapp.data.repository.OnibusRepositoryImpl
 import com.example.sptransapp.databinding.ActivityMainBinding
+import com.example.sptransapp.domain.model.Corredor
 import com.example.sptransapp.domain.model.Linha
 import com.example.sptransapp.domain.model.Parada
 import com.example.sptransapp.domain.model.Previsao
@@ -23,12 +25,8 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import androidx.core.net.toUri
-import com.example.sptransapp.domain.model.Corredor
-
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
-
     private lateinit var binding: ActivityMainBinding
     private var googleMap: GoogleMap? = null
 
@@ -57,12 +55,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onResume() {
         super.onResume()
-
     }
 
     private fun setupMap() {
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.mapFragment) as SupportMapFragment
+        val mapFragment =
+            supportFragmentManager
+                .findFragmentById(R.id.mapFragment) as SupportMapFragment
         mapFragment.getMapAsync(this)
     }
 
@@ -75,7 +73,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 realizarBusca()
                 true
-            } else false
+            } else {
+                false
+            }
         }
 
         binding.btnClearFilter.setOnClickListener {
@@ -156,13 +156,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             listaOnibus.forEach { onibus ->
-                val marker = googleMap?.addMarker(
-                    MarkerOptions()
-                        .position(LatLng(onibus.latitude, onibus.longitude))
-                        .title("${onibus.letreiro} - ${onibus.sentido}")
-                        .snippet("Prefixo: ${onibus.prefixo}")
+                val marker =
+                    googleMap?.addMarker(
+                        MarkerOptions()
+                            .position(LatLng(onibus.latitude, onibus.longitude))
+                            .title("${onibus.letreiro} - ${onibus.sentido}")
+                            .snippet("Prefixo: ${onibus.prefixo}"),
 //                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus))
-                )
+                    )
 
                 marker?.tag = "ONIBUS"
 
@@ -173,12 +174,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         viewModel.paradasList.observe(this) { listaParadas ->
 
             listaParadas.forEach { parada ->
-                val marker = googleMap?.addMarker(
-                    MarkerOptions()
-                        .position(LatLng(parada.latitude, parada.longitude))
-                        .title("Parada: ${parada.nome}")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                )
+                val marker =
+                    googleMap?.addMarker(
+                        MarkerOptions()
+                            .position(LatLng(parada.latitude, parada.longitude))
+                            .title("Parada: ${parada.nome}")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)),
+                    )
 
                 marker?.tag = parada
             }
@@ -233,7 +235,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             .setPositiveButton("Fechar", null)
                             .show()
                     }
-
                 } catch (e: Exception) {
                     Toast.makeText(this, "Erro ao processar KML: ${e.message}", Toast.LENGTH_LONG).show()
                 }
@@ -276,7 +277,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .setTitle("Próximos Ônibus")
             .setItems(itens, null)
             .setPositiveButton("OK", null)
-
             .setNeutralButton("Como Chegar (Rota)") { _, _ ->
                 abrirRotaNoMaps()
             }
@@ -291,7 +291,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .setItems(nomes) { _, which ->
                 val corredorSelecionado = lista[which]
                 Toast.makeText(this, "Corredor: ${corredorSelecionado.nome}", Toast.LENGTH_SHORT).show()
-
             }
             .setPositiveButton("Fechar", null)
             .show()

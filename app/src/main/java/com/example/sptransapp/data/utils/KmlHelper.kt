@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipInputStream
 
 object KmlHelper {
-
     fun extractKmlFromKmz(responseBody: ResponseBody): ByteArrayInputStream? {
         try {
             val zipInputStream = ZipInputStream(responseBody.byteStream())
@@ -14,7 +13,6 @@ object KmlHelper {
 
             while (entry != null) {
                 if (entry.name.lowercase().endsWith(".kml")) {
-
                     val buffer = ByteArray(1024)
                     val outputStream = ByteArrayOutputStream()
                     var len: Int

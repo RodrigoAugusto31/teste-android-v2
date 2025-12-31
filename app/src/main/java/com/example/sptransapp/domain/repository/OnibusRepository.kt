@@ -8,11 +8,18 @@ import com.example.sptransapp.domain.model.Previsao
 
 interface OnibusRepository {
     suspend fun buscarPosicoes(): List<Onibus>
+
     suspend fun buscarLinhas(termo: String): List<Linha>
+
     suspend fun buscarPosicoesPorLinha(codigoLinha: Int): List<Onibus>
+
     suspend fun buscarParadasPorLinha(codigoLinha: Int): List<Parada>
+
     suspend fun buscarPrevisaoParada(codigoParada: Int): List<Previsao>
+
     suspend fun buscarCorredores(): List<Corredor>
+
     suspend fun buscarKmlCorredores(): java.io.InputStream?
+
     suspend fun buscarKmlGeral(): java.io.InputStream?
 }

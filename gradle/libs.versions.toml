@@ -26,6 +26,7 @@ materialVersion = "1.12.0"
 mockk = "1.13.13"
 playServicesMaps = "19.0.0"
 retrofit = "2.11.0"
+ktlint = "12.1.0"
 
 [libraries]
 android-maps-utils = { module = "com.google.maps.android:android-maps-utils", version.ref = "androidMapsUtils" }
@@ -57,4 +58,5 @@ retrofit2-converter-gson = { module = "com.squareup.retrofit2:converter-gson", v
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 

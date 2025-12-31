@@ -6,5 +6,5 @@ data class Onibus(
     val longitude: Double,
     val letreiro: String,
     val sentido: String,
-    val isAcessivel: Boolean
+    val isAcessivel: Boolean,
 )

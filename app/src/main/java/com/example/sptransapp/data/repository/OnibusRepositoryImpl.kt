@@ -12,9 +12,8 @@ import com.example.sptransapp.domain.model.Previsao
 import com.example.sptransapp.domain.repository.OnibusRepository
 
 class OnibusRepositoryImpl(
-    private val api: SPTransApi
+    private val api: SPTransApi,
 ) : OnibusRepository {
-
     override suspend fun buscarPosicoes(): List<Onibus> {
         var response = api.getPositions()
 
@@ -41,8 +40,8 @@ class OnibusRepositoryImpl(
                         longitude = veiculo.longitude,
                         letreiro = linha.letreiroCompleto,
                         sentido = linha.destino,
-                        isAcessivel = veiculo.acessivel
-                    )
+                        isAcessivel = veiculo.acessivel,
+                    ),
                 )
             }
         }
@@ -57,9 +56,13 @@ class OnibusRepositoryImpl(
             Linha(
                 codigoLinha = dto.codigoLinha,
                 letreiroCompleto = "${dto.letreiroPrimeiro}-${dto.letreiroSegundo}",
-                nome = if (dto.sentido == 1) "${dto.letreiroPrincipal} -> ${dto.letreiroSecundario}"
-                else "${dto.letreiroSecundario} -> ${dto.letreiroPrincipal}",
-                sentido = dto.sentido
+                nome =
+                    if (dto.sentido == 1) {
+                        "${dto.letreiroPrincipal} -> ${dto.letreiroSecundario}"
+                    } else {
+                        "${dto.letreiroSecundario} -> ${dto.letreiroPrincipal}"
+                    },
+                sentido = dto.sentido,
             )
         } ?: emptyList()
     }
@@ -88,12 +91,11 @@ class OnibusRepositoryImpl(
                         longitude = veiculo.longitude,
                         letreiro = "Linha Selecionada",
                         sentido = "Destino",
-                        isAcessivel = veiculo.acessivel
-                    )
+                        isAcessivel = veiculo.acessivel,
+                    ),
                 )
             }
-        }
-        else {
+        } else {
             dados.linhas.forEach { linha ->
                 linha.veiculos.forEach { veiculo ->
                     listaOnibusDomain.add(
@@ -103,8 +105,8 @@ class OnibusRepositoryImpl(
                             longitude = veiculo.longitude,
                             letreiro = linha.letreiroCompleto,
                             sentido = linha.destino,
-                            isAcessivel = veiculo.acessivel
-                        )
+                            isAcessivel = veiculo.acessivel,
+                        ),
                     )
                 }
             }
@@ -121,7 +123,7 @@ class OnibusRepositoryImpl(
                 codigo = dto.codigoParada,
                 nome = "${dto.nomeParada} - ${dto.endereco ?: ""}",
                 latitude = dto.latitude,
-                longitude = dto.longitude
+                longitude = dto.longitude,
             )
         } ?: emptyList()
     }
@@ -139,8 +141,8 @@ class OnibusRepositoryImpl(
                         linha = linha.letreiro ?: "",
                         destino = linha.destino ?: "",
                         horarioChegada = veiculo.previsaoChegada ?: "--:--",
-                        prefixoVeiculo = veiculo.prefixo ?: ""
-                    )
+                        prefixoVeiculo = veiculo.prefixo ?: "",
+                    ),
                 )
             }
         }
@@ -153,7 +155,7 @@ class OnibusRepositoryImpl(
         return response.body()?.map { dto ->
             Corredor(
                 codigo = dto.codigo ?: 0,
-                nome = dto.nome ?: "Sem Nome"
+                nome = dto.nome ?: "Sem Nome",
             )
         } ?: emptyList()
     }

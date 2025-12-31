@@ -9,5 +9,5 @@ data class LinhaBuscaDto(
     @SerializedName("tl") val letreiroSegundo: Int,
     @SerializedName("sl") val sentido: Int,
     @SerializedName("tp") val letreiroPrincipal: String,
-    @SerializedName("ts") val letreiroSecundario: String
+    @SerializedName("ts") val letreiroSecundario: String,
 )
