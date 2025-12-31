@@ -4,17 +4,23 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sptransapp.domain.model.Corredor
 import com.example.sptransapp.domain.model.Linha
 import com.example.sptransapp.domain.model.Onibus
 import com.example.sptransapp.domain.model.Parada
 import com.example.sptransapp.domain.model.Previsao
 import com.example.sptransapp.domain.repository.OnibusRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MapViewModel(
-    private val repository: OnibusRepository
+    private val repository: OnibusRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     private val _onibusList = MutableLiveData<List<Onibus>>()
@@ -35,39 +41,59 @@ class MapViewModel(
     private val _previsoes = MutableLiveData<List<Previsao>>()
     val previsoes: LiveData<List<Previsao>> = _previsoes
 
-    fun buscarOnibus() {
-        _isLoading.value = true
-        _errorMessage.value = null
+    private val _corredores = MutableLiveData<List<Corredor>>()
+    val corredores: LiveData<List<Corredor>> = _corredores
 
-        viewModelScope.launch {
-            try {
-                val resultado = withContext(Dispatchers.IO) {
-                    repository.buscarPosicoes()
+    private val _kmlData = MutableLiveData<java.io.InputStream?>()
+    val kmlData: LiveData<java.io.InputStream?> = _kmlData
+
+    private var refreshJob: Job? = null
+
+    private fun startAutoRefresh(action: suspend () -> List<Onibus>) {
+        refreshJob?.cancel()
+
+        refreshJob = viewModelScope.launch {
+            _isLoading.value = true
+
+            while (isActive) {
+                try {
+                    val resultado = withContext(ioDispatcher) {
+                        action()
+                    }
+                    _onibusList.value = resultado
+                    _errorMessage.value = null
+
+                } catch (e: Exception) {
+                    _errorMessage.value = "Erro na atualização: ${e.message}"
+                } finally {
+                    _isLoading.value = false
                 }
 
-                _onibusList.value = resultado
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _errorMessage.value = "Erro ao carregar autocarros: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                delay(15_000)
             }
+        }
+    }
+
+    fun buscarOnibus() {
+        _paradasList.value = emptyList()
+
+        startAutoRefresh {
+            repository.buscarPosicoes()
         }
     }
 
     fun pesquisarLinha(termo: String) {
         if (termo.isBlank()) return
-
         _isLoading.value = true
+
         viewModelScope.launch {
             try {
-                val resultado = withContext(Dispatchers.IO) {
+                val resultado = withContext(ioDispatcher) {
                     repository.buscarLinhas(termo)
                 }
                 _linhasEncontradas.value = resultado
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao buscar linha: ${e.message}"
+                _errorMessage.value = "Erro na busca: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -75,25 +101,22 @@ class MapViewModel(
     }
 
     fun carregarOnibusDaLinha(codigoLinha: Int) {
-        _isLoading.value = true
-        _paradasList.value = emptyList()
+        carregarParadas(codigoLinha)
 
+        startAutoRefresh {
+            repository.buscarPosicoesPorLinha(codigoLinha)
+        }
+    }
+
+    private fun carregarParadas(codigoLinha: Int) {
         viewModelScope.launch {
             try {
-                val onibusResult = withContext(Dispatchers.IO) {
-                    repository.buscarPosicoesPorLinha(codigoLinha)
-                }
-                _onibusList.value = onibusResult
-
-                val paradasResult = withContext(Dispatchers.IO) {
+                val resultado = withContext(ioDispatcher) {
                     repository.buscarParadasPorLinha(codigoLinha)
                 }
-                _paradasList.value = paradasResult
-
+                _paradasList.value = resultado
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao filtrar linha/paradas: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                e.printStackTrace()
             }
         }
     }
@@ -102,7 +125,7 @@ class MapViewModel(
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val resultado = withContext(Dispatchers.IO) {
+                val resultado = withContext(ioDispatcher) {
                     repository.buscarPrevisaoParada(codigoParada)
                 }
                 _previsoes.value = resultado
@@ -112,5 +135,57 @@ class MapViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    fun buscarListaCorredores() {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val resultado = withContext(ioDispatcher) {
+                    repository.buscarCorredores()
+                }
+                _corredores.value = resultado
+            } catch (e: Exception) {
+                _errorMessage.value = "Erro ao buscar corredores: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun carregarMapaCorredores() {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val inputStream = withContext(ioDispatcher) {
+                    repository.buscarKmlCorredores()
+                }
+                _kmlData.value = inputStream
+            } catch (e: Exception) {
+                _errorMessage.value = "Erro ao baixar mapa de corredores: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun carregarMapaGeral() {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                val inputStream = withContext(ioDispatcher) {
+                    repository.buscarKmlGeral()
+                }
+                _kmlData.value = inputStream
+            } catch (e: Exception) {
+                _errorMessage.value = "Erro ao baixar mapa geral: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun stopRefresh() {
+        refreshJob?.cancel()
     }
 }

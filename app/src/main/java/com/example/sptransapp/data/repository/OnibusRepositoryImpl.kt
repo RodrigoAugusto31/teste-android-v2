@@ -3,6 +3,8 @@ package com.example.sptransapp.data.repository
 import android.util.Log
 import com.example.sptransapp.BuildConfig
 import com.example.sptransapp.data.api.SPTransApi
+import com.example.sptransapp.data.utils.KmlHelper
+import com.example.sptransapp.domain.model.Corredor
 import com.example.sptransapp.domain.model.Linha
 import com.example.sptransapp.domain.model.Onibus
 import com.example.sptransapp.domain.model.Parada
@@ -143,5 +145,32 @@ class OnibusRepositoryImpl(
             }
         }
         return listaPrevisoes
+    }
+
+    override suspend fun buscarCorredores(): List<Corredor> {
+        val response = api.getCorredores()
+
+        return response.body()?.map { dto ->
+            Corredor(
+                codigo = dto.codigo ?: 0,
+                nome = dto.nome ?: "Sem Nome"
+            )
+        } ?: emptyList()
+    }
+
+    override suspend fun buscarKmlCorredores(): java.io.InputStream? {
+        val response = api.getCorredoresKMZ()
+        if (response.isSuccessful && response.body() != null) {
+            return KmlHelper.extractKmlFromKmz(response.body()!!)
+        }
+        return null
+    }
+
+    override suspend fun buscarKmlGeral(): java.io.InputStream? {
+        val response = api.getKmzGeral()
+        if (response.isSuccessful && response.body() != null) {
+            return KmlHelper.extractKmlFromKmz(response.body()!!)
+        }
+        return null
     }
 }

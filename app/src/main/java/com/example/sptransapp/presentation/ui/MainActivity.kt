@@ -12,6 +12,7 @@ import com.example.sptransapp.data.api.RetrofitClient
 import com.example.sptransapp.data.repository.OnibusRepositoryImpl
 import com.example.sptransapp.databinding.ActivityMainBinding
 import com.example.sptransapp.domain.model.Linha
+import com.example.sptransapp.domain.model.Parada
 import com.example.sptransapp.domain.model.Previsao
 import com.example.sptransapp.presentation.viewmodel.MapViewModel
 import com.example.sptransapp.presentation.viewmodel.MapViewModelFactory
@@ -22,12 +23,21 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import androidx.core.net.toUri
+import com.example.sptransapp.domain.model.Corredor
 
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityMainBinding
     private var googleMap: GoogleMap? = null
+
+    private var shouldMoveCamera = false
+    private val busMarkers = mutableListOf<com.google.android.gms.maps.model.Marker>()
+
+    private var paradaSelecionada: Parada? = null
+
+    private var currentKmlLayer: com.google.maps.android.data.kml.KmlLayer? = null
 
     private val viewModel: MapViewModel by viewModels {
         MapViewModelFactory(OnibusRepositoryImpl(RetrofitClient.api))
@@ -43,6 +53,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         setupObservers()
 
         viewModel.buscarOnibus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
     }
 
     private fun setupMap() {
@@ -69,12 +84,35 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             viewModel.buscarOnibus()
             Toast.makeText(this, "Exibindo todos os ônibus...", Toast.LENGTH_SHORT).show()
         }
+
+        binding.btnCorredores.setOnClickListener {
+            val opcoes = arrayOf("Ver Apenas Corredores", "Ver Mapa Geral (Vias + Trânsito)", "Limpar Mapa")
+
+            AlertDialog.Builder(this)
+                .setTitle("Camadas de Trânsito")
+                .setItems(opcoes) { _, which ->
+                    when (which) {
+                        0 -> viewModel.carregarMapaCorredores()
+                        1 -> {
+                            Toast.makeText(this, "Baixando mapa completo... isso pode demorar um pouco.", Toast.LENGTH_LONG).show()
+                            viewModel.carregarMapaGeral()
+                        }
+                        2 -> {
+                            currentKmlLayer?.removeLayerFromMap()
+                            currentKmlLayer = null
+                            Toast.makeText(this, "Camadas removidas.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .show()
+        }
     }
 
     private fun realizarBusca() {
         val termo = binding.etSearch.text.toString()
         if (termo.isNotEmpty()) {
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val imm =
+                getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
 
             viewModel.pesquisarLinha(termo)
@@ -90,9 +128,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         map.setOnMarkerClickListener { marker ->
             val tag = marker.tag
 
-            if (tag is Int) {
+            if (tag is Parada) {
+                paradaSelecionada = tag
+
                 Toast.makeText(this, "Buscando previsões...", Toast.LENGTH_SHORT).show()
-                viewModel.buscarPrevisaoDaParada(tag)
+                viewModel.buscarPrevisaoDaParada(tag.codigo)
+
                 false
             } else {
                 false
@@ -102,25 +143,30 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun setupObservers() {
         viewModel.onibusList.observe(this) { listaOnibus ->
-            googleMap?.clear()
 
-            if (listaOnibus.isEmpty()) {
-                Toast.makeText(this, "Nenhum ônibus encontrado.", Toast.LENGTH_SHORT).show()
-            } else {
-                if (binding.btnClearFilter.isVisible && listaOnibus.isNotEmpty()) {
-                    val primeiro = listaOnibus[0]
-                    val pos = LatLng(primeiro.latitude, primeiro.longitude)
-                    googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 14f))
-                }
+            busMarkers.forEach { it.remove() }
+            busMarkers.clear()
+
+            if (shouldMoveCamera) {
+                val primeiro = listaOnibus[0]
+                val pos = LatLng(primeiro.latitude, primeiro.longitude)
+                googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 14f))
+
+                shouldMoveCamera = false
             }
 
             listaOnibus.forEach { onibus ->
-                googleMap?.addMarker(
+                val marker = googleMap?.addMarker(
                     MarkerOptions()
                         .position(LatLng(onibus.latitude, onibus.longitude))
                         .title("${onibus.letreiro} - ${onibus.sentido}")
                         .snippet("Prefixo: ${onibus.prefixo}")
+//                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus))
                 )
+
+                marker?.tag = "ONIBUS"
+
+                marker?.let { busMarkers.add(it) }
             }
         }
 
@@ -133,13 +179,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         .title("Parada: ${parada.nome}")
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                 )
-                marker?.tag = parada.codigo
+
+                marker?.tag = parada
             }
         }
 
         viewModel.linhasEncontradas.observe(this) { linhas ->
             if (linhas.isEmpty()) {
-                Toast.makeText(this, "Nenhuma linha encontrada com esse termo.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Nenhuma linha encontrada com esse termo.", Toast.LENGTH_LONG)
+                    .show()
             } else {
                 mostrarDialogSelecaoLinha(linhas)
             }
@@ -147,15 +195,55 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         viewModel.previsoes.observe(this) { lista ->
             if (lista.isEmpty()) {
-                Toast.makeText(this, "Sem previsões para esta parada agora.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Sem previsões para esta parada agora.", Toast.LENGTH_SHORT)
+                    .show()
             } else {
                 mostrarDialogPrevisoes(lista)
+            }
+        }
+
+        viewModel.corredores.observe(this) { lista ->
+            if (lista.isEmpty()) {
+                Toast.makeText(this, "Nenhum corredor encontrado.", Toast.LENGTH_SHORT).show()
+            } else {
+                mostrarDialogCorredores(lista)
+            }
+        }
+
+        viewModel.kmlData.observe(this) { inputStream ->
+            if (inputStream != null) {
+                try {
+                    currentKmlLayer?.removeLayerFromMap()
+
+                    val layer = com.google.maps.android.data.kml.KmlLayer(googleMap, inputStream, applicationContext)
+
+                    layer.addLayerToMap()
+                    currentKmlLayer = layer
+
+                    Toast.makeText(this, "Mapa de Vias carregado!", Toast.LENGTH_SHORT).show()
+
+                    layer.setOnFeatureClickListener { feature ->
+                        val nome = feature.getProperty("name") ?: "Via sem nome"
+                        val descricao = feature.getProperty("description") ?: ""
+                        val descricaoLimpa = android.text.Html.fromHtml(descricao, android.text.Html.FROM_HTML_MODE_COMPACT)
+
+                        AlertDialog.Builder(this)
+                            .setTitle(nome)
+                            .setMessage(descricaoLimpa)
+                            .setPositiveButton("Fechar", null)
+                            .show()
+                    }
+
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Erro ao processar KML: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
 
         viewModel.isLoading.observe(this) { isLoading ->
             binding.progressBar.isVisible = isLoading
         }
+
         viewModel.errorMessage.observe(this) { erro ->
             erro?.let { Toast.makeText(this, it, Toast.LENGTH_LONG).show() }
         }
@@ -173,6 +261,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 googleMap?.clear()
 
+                shouldMoveCamera = true
+
                 viewModel.carregarOnibusDaLinha(linhaSelecionada.codigoLinha)
             }
             .setNegativeButton("Cancelar", null)
@@ -186,6 +276,43 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .setTitle("Próximos Ônibus")
             .setItems(itens, null)
             .setPositiveButton("OK", null)
+
+            .setNeutralButton("Como Chegar (Rota)") { _, _ ->
+                abrirRotaNoMaps()
+            }
             .show()
+    }
+
+    private fun mostrarDialogCorredores(lista: List<Corredor>) {
+        val nomes = lista.map { it.nome }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Corredores de SP")
+            .setItems(nomes) { _, which ->
+                val corredorSelecionado = lista[which]
+                Toast.makeText(this, "Corredor: ${corredorSelecionado.nome}", Toast.LENGTH_SHORT).show()
+
+            }
+            .setPositiveButton("Fechar", null)
+            .show()
+    }
+
+    private fun abrirRotaNoMaps() {
+        val parada = paradaSelecionada ?: return
+
+        val uri = "https://www.google.com/maps/dir/?api=1&destination=${parada.latitude},${parada.longitude}&travelmode=walking".toUri()
+
+        val mapIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+
+        try {
+            startActivity(mapIntent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Não foi possível abrir o mapa.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.stopRefresh()
     }
 }
