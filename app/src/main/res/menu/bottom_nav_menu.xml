@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_lines"
+        android:icon="@drawable/ic_route"
+        android:title="@string/route_lines" />
+
+    <item
+        android:id="@+id/nav_bus"
+        android:icon="@drawable/ic_bus"
+        android:title="@string/route_bus" />
+
+    <item
+        android:id="@+id/nav_stops"
+        android:icon="@drawable/ic_stop"
+        android:title="@string/route_stop" />
+</menu>

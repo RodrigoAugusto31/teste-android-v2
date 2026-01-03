@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_lines">
+
+    <fragment
+        android:id="@+id/nav_lines"
+        android:name="com.example.sptransapp.presentation.ui.LinesFragment"
+        android:label="@string/route_lines"
+        tools:layout="@layout/fragment_lines" />
+
+    <fragment
+        android:id="@+id/nav_bus"
+        android:name="com.example.sptransapp.presentation.ui.BusFragment"
+        android:label="@string/route_bus"
+        tools:layout="@layout/fragment_bus" />
+
+    <fragment
+        android:id="@+id/nav_stops"
+        android:name="com.example.sptransapp.presentation.ui.StopsFragment"
+        android:label="@string/route_stop"
+        tools:layout="@layout/fragment_stops" />
+
+    <fragment
+        android:id="@+id/nav_line_details"
+        android:name="com.example.sptransapp.presentation.ui.LineDetailsFragment"
+        android:label="@string/route_lines_details"
+        tools:layout="@layout/fragment_line_details" />
+</navigation>

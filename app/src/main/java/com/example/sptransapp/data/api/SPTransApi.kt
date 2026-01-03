@@ -1,10 +1,10 @@
 package com.example.sptransapp.data.api
 
-import com.example.sptransapp.data.model.CorredorDto
-import com.example.sptransapp.data.model.LinhaBuscaDto
-import com.example.sptransapp.data.model.ParadaDto
-import com.example.sptransapp.data.model.PosicaoResponse
-import com.example.sptransapp.data.model.PrevisaoResponse
+import com.example.sptransapp.data.model.CorridorDto
+import com.example.sptransapp.data.model.LineSearchDto
+import com.example.sptransapp.data.model.StopDto
+import com.example.sptransapp.data.model.PositionResponse
+import com.example.sptransapp.data.model.PredictionResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET
@@ -18,37 +18,37 @@ interface SPTransApi {
     ): Response<Boolean>
 
     @GET("Posicao")
-    suspend fun getPositions(): Response<PosicaoResponse>
+    suspend fun getPositions(): Response<PositionResponse>
 
     @GET("Linha/Buscar")
-    suspend fun buscarLinhas(
+    suspend fun searchLines(
         @Query("termosBusca") termos: String,
-    ): Response<List<LinhaBuscaDto>>
+    ): Response<List<LineSearchDto>>
 
     @GET("Posicao/Linha")
-    suspend fun getPosicoesPorLinha(
+    suspend fun getPositionsByLine(
         @Query("codigoLinha") codigoLinha: Int,
-    ): Response<PosicaoResponse>
+    ): Response<PositionResponse>
 
     @GET("Parada/BuscarParadasPorLinha")
-    suspend fun getParadasPorLinha(
+    suspend fun getStopsByLine(
         @Query("codigoLinha") codigoLinha: Int,
-    ): Response<List<ParadaDto>>
+    ): Response<List<StopDto>>
 
     @GET("Previsao/Parada")
-    suspend fun getPrevisaoParada(
+    suspend fun getStopPredictions(
         @Query("codigoParada") codigoParada: Int,
-    ): Response<PrevisaoResponse>
+    ): Response<PredictionResponse>
 
     @GET("Corredor")
-    suspend fun getCorredores(): Response<List<CorredorDto>>
+    suspend fun getCorridors(): Response<List<CorridorDto>>
 
     @GET("KMZ/Corredor")
-    suspend fun getCorredoresKMZ(): Response<ResponseBody>
+    suspend fun getCorridorsKml(): Response<ResponseBody>
 
     @GET("KMZ")
-    suspend fun getKmzGeral(): Response<ResponseBody>
+    suspend fun getGeneralKml(): Response<ResponseBody>
 
     @GET("KMZ/OutrasVias")
-    suspend fun getOutrasViasKMZ(): Response<ResponseBody>
+    suspend fun getOtherLanesKml(): Response<ResponseBody>
 }

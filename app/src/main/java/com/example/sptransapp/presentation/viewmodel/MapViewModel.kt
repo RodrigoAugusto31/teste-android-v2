@@ -1,15 +1,17 @@
 package com.example.sptransapp.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sptransapp.domain.model.Corredor
-import com.example.sptransapp.domain.model.Linha
-import com.example.sptransapp.domain.model.Onibus
-import com.example.sptransapp.domain.model.Parada
-import com.example.sptransapp.domain.model.Previsao
-import com.example.sptransapp.domain.repository.OnibusRepository
+import com.example.sptransapp.R
+import com.example.sptransapp.domain.model.Corridor
+import com.example.sptransapp.domain.model.Line
+import com.example.sptransapp.domain.model.Bus
+import com.example.sptransapp.domain.model.Stop
+import com.example.sptransapp.domain.model.Prediction
+import com.example.sptransapp.domain.repository.BusRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,11 +21,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MapViewModel(
-    private val repository: OnibusRepository,
+    private val repository: BusRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val context: Context
 ) : ViewModel() {
-    private val _onibusList = MutableLiveData<List<Onibus>>()
-    val onibusList: LiveData<List<Onibus>> = _onibusList
+
+    private val _busList = MutableLiveData<List<Bus>>()
+    val busList: LiveData<List<Bus>> = _busList
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
@@ -31,24 +35,35 @@ class MapViewModel(
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
-    private val _paradasList = MutableLiveData<List<Parada>>()
-    val paradasList: LiveData<List<Parada>> = _paradasList
+    private val _stopList = MutableLiveData<List<Stop>>()
+    val stopList: LiveData<List<Stop>> = _stopList
 
-    private val _linhasEncontradas = MutableLiveData<List<Linha>>()
-    val linhasEncontradas: LiveData<List<Linha>> = _linhasEncontradas
+    private val _foundLines = MutableLiveData<List<Line>>()
+    val foundLines: LiveData<List<Line>> = _foundLines
 
-    private val _previsoes = MutableLiveData<List<Previsao>>()
-    val previsoes: LiveData<List<Previsao>> = _previsoes
+    private val _predictions = MutableLiveData<List<Prediction>>()
+    val predictions: LiveData<List<Prediction>> = _predictions
 
-    private val _corredores = MutableLiveData<List<Corredor>>()
-    val corredores: LiveData<List<Corredor>> = _corredores
+    private val _corridors = MutableLiveData<List<Corridor>>()
+    val corridors: LiveData<List<Corridor>> = _corridors
 
     private val _kmlData = MutableLiveData<java.io.InputStream?>()
     val kmlData: LiveData<java.io.InputStream?> = _kmlData
 
+    private val _selectedLine = MutableLiveData<Line?>()
+    val selectedLine: LiveData<Line?> = _selectedLine
+
+    var deveMoverCamera = false
+
     private var refreshJob: Job? = null
 
-    private fun startAutoRefresh(action: suspend () -> List<Onibus>) {
+    fun clearData() {
+        _busList.value = emptyList()
+        _stopList.value = emptyList()
+        stopRefresh()
+    }
+
+    private fun startAutoRefresh(action: suspend () -> List<Bus>) {
         refreshJob?.cancel()
 
         refreshJob =
@@ -57,14 +72,15 @@ class MapViewModel(
 
                 while (isActive) {
                     try {
-                        val resultado =
+                        val result =
                             withContext(ioDispatcher) {
                                 action()
                             }
-                        _onibusList.value = resultado
+                        _busList.value = result
                         _errorMessage.value = null
                     } catch (e: Exception) {
-                        _errorMessage.value = "Erro na atualização: ${e.message}"
+                        _errorMessage.value =
+                            context.getString(R.string.att_error_message, e.message)
                     } finally {
                         _isLoading.value = false
                     }
@@ -74,138 +90,157 @@ class MapViewModel(
             }
     }
 
-    fun buscarOnibus() {
-        _paradasList.value = emptyList()
+    fun selectLine(line: Line) {
+        _selectedLine.value = line
+        deveMoverCamera = true
 
+        clearSearchResults()
+        loadBusesByLine(line.lineCode)
+    }
+
+    fun fetchBuses() {
+        _stopList.value = emptyList()
         startAutoRefresh {
-            repository.buscarPosicoes()
+            repository.getPositions()
         }
     }
 
-    fun pesquisarLinha(termo: String) {
-        if (termo.isBlank()) return
+    fun searchLine(query: String) {
+        if (query.isBlank()) return
         _isLoading.value = true
 
         viewModelScope.launch {
             try {
-                val resultado =
+                val result =
                     withContext(ioDispatcher) {
-                        repository.buscarLinhas(termo)
+                        repository.searchLines(query)
                     }
-                _linhasEncontradas.value = resultado
+                _foundLines.value = result
             } catch (e: Exception) {
-                _errorMessage.value = "Erro na busca: ${e.message}"
+                _errorMessage.value = context.getString(R.string.search_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun carregarOnibusDaLinha(codigoLinha: Int) {
-        carregarParadas(codigoLinha)
-
+    fun loadBusesByLine(lineCode: Int) {
+        loadStops(lineCode)
         startAutoRefresh {
-            repository.buscarPosicoesPorLinha(codigoLinha)
+            repository.getPositionsByLine(lineCode)
         }
     }
 
-    private fun carregarParadas(codigoLinha: Int) {
+    private fun loadStops(lineCode: Int) {
         viewModelScope.launch {
             try {
-                val resultado =
+                val result =
                     withContext(ioDispatcher) {
-                        repository.buscarParadasPorLinha(codigoLinha)
+                        repository.getStopsByLine(lineCode)
                     }
-                _paradasList.value = resultado
+                _stopList.value = result
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 
-    fun buscarPrevisaoDaParada(codigoParada: Int) {
+    fun fetchStopPredictions(stopCode: Int) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val resultado =
+                val result =
                     withContext(ioDispatcher) {
-                        repository.buscarPrevisaoParada(codigoParada)
+                        repository.getStopPredictions(stopCode)
                     }
-                _previsoes.value = resultado
+                _predictions.value = result
             } catch (e: Exception) {
-                _errorMessage.value = "Erro na previsão: ${e.message}"
+                _errorMessage.value =
+                    context.getString(R.string.prediction_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun buscarListaCorredores() {
+    fun fetchCorridors() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val resultado =
+                val result =
                     withContext(ioDispatcher) {
-                        repository.buscarCorredores()
+                        repository.getCorridors()
                     }
-                _corredores.value = resultado
+                _corridors.value = result
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao buscar corredores: ${e.message}"
+                _errorMessage.value =
+                    context.getString(R.string.search_corridor_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun carregarMapaCorredores() {
+    fun loadCorridorsMap() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
                 val inputStream =
                     withContext(ioDispatcher) {
-                        repository.buscarKmlCorredores()
+                        repository.getCorridorsKml()
                     }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao baixar mapa de corredores: ${e.message}"
+                _errorMessage.value =
+                    context.getString(R.string.map_download_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun carregarMapaGeral() {
+    fun loadGeneralMap() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
                 val inputStream =
                     withContext(ioDispatcher) {
-                        repository.buscarKmlGeral()
+                        repository.getGeneralKml()
                     }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao baixar mapa geral: ${e.message}"
+                _errorMessage.value =
+                    context.getString(R.string.map_download_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun carregarMapaOutrasVias() {
+    fun loadOtherLanesMap() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
                 val inputStream =
                     withContext(ioDispatcher) {
-                        repository.buscarKmlOutrasVias()
+                        repository.getOtherLanesKml()
                     }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
-                _errorMessage.value = "Erro ao baixar mapa de vias: ${e.message}"
+                _errorMessage.value =
+                    context.getString(R.string.map_download_error_message, e.message)
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun clearSearchResults() {
+        _foundLines.value = emptyList()
+    }
+
+    fun clearPredictions() {
+        _predictions.value = emptyList()
     }
 
     fun stopRefresh() {

@@ -2,12 +2,12 @@ package com.example.sptransapp
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.Observer
-import com.example.sptransapp.domain.model.Corredor
-import com.example.sptransapp.domain.model.Linha
-import com.example.sptransapp.domain.model.Onibus
-import com.example.sptransapp.domain.model.Parada
-import com.example.sptransapp.domain.model.Previsao
-import com.example.sptransapp.domain.repository.OnibusRepository
+import com.example.sptransapp.domain.model.Corridor
+import com.example.sptransapp.domain.model.Line
+import com.example.sptransapp.domain.model.Bus
+import com.example.sptransapp.domain.model.Stop
+import com.example.sptransapp.domain.model.Prediction
+import com.example.sptransapp.domain.repository.BusRepository
 import com.example.sptransapp.presentation.viewmodel.MapViewModel
 import io.mockk.clearMocks
 import io.mockk.coEvery
@@ -35,10 +35,10 @@ class MapViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(testDispatcher)
 
-    private lateinit var repository: OnibusRepository
+    private lateinit var repository: BusRepository
     private lateinit var viewModel: MapViewModel
 
-    private val onibusObserver: Observer<List<Onibus>> = mockk(relaxed = true)
+    private val onibusObserver: Observer<List<Bus>> = mockk(relaxed = true)
     private val loadingObserver: Observer<Boolean> = mockk(relaxed = true)
     private val errorObserver: Observer<String?> = mockk(relaxed = true)
 
@@ -47,7 +47,7 @@ class MapViewModelTest {
         repository = mockk()
         viewModel = MapViewModel(repository, testDispatcher)
 
-        viewModel.onibusList.observeForever(onibusObserver)
+        viewModel.busList.observeForever(onibusObserver)
         viewModel.isLoading.observeForever(loadingObserver)
         viewModel.errorMessage.observeForever(errorObserver)
     }
@@ -55,10 +55,10 @@ class MapViewModelTest {
     @Test
     fun `buscarOnibus DEVE atualizar lista e repetir APOS delay QUANDO sucesso`() =
         runTest(testDispatcher) {
-            val listaOnibus = listOf(mockk<Onibus>())
-            coEvery { repository.buscarPosicoes() } returns listaOnibus
+            val listaOnibus = listOf(mockk<Bus>())
+            coEvery { repository.getPositions() } returns listaOnibus
 
-            viewModel.buscarOnibus()
+            viewModel.fetchBuses()
 
             advanceTimeBy(100)
             verify { loadingObserver.onChanged(true) }
@@ -67,7 +67,7 @@ class MapViewModelTest {
 
             advanceTimeBy(15_001)
 
-            coVerify(atLeast = 2) { repository.buscarPosicoes() }
+            coVerify(atLeast = 2) { repository.getPositions() }
 
             viewModel.stopRefresh()
         }
@@ -76,9 +76,9 @@ class MapViewModelTest {
     fun `buscarOnibus DEVE setar mensagem de erro QUANDO repositorio falha`() =
         runTest(testDispatcher) {
             val errorMsg = "Erro de conexão"
-            coEvery { repository.buscarPosicoes() } throws Exception(errorMsg)
+            coEvery { repository.getPositions() } throws Exception(errorMsg)
 
-            viewModel.buscarOnibus()
+            viewModel.fetchBuses()
             advanceTimeBy(100)
 
             verify { loadingObserver.onChanged(true) }
@@ -91,9 +91,9 @@ class MapViewModelTest {
     @Test
     fun `pesquisarLinha NAO DEVE chamar repositorio QUANDO termo eh vazio`() =
         runTest(testDispatcher) {
-            viewModel.pesquisarLinha("")
+            viewModel.searchLine("")
 
-            coVerify(exactly = 0) { repository.buscarLinhas(any()) }
+            coVerify(exactly = 0) { repository.searchLines(any()) }
             assertEquals(null, viewModel.isLoading.value)
         }
 
@@ -101,22 +101,22 @@ class MapViewModelTest {
     fun `pesquisarLinha DEVE retornar linhas QUANDO sucesso`() =
         runTest(testDispatcher) {
             val termo = "8000"
-            val listaLinhas = listOf(mockk<Linha>())
-            coEvery { repository.buscarLinhas(termo) } returns listaLinhas
+            val listaLinhas = listOf(mockk<Line>())
+            coEvery { repository.searchLines(termo) } returns listaLinhas
 
-            viewModel.pesquisarLinha(termo)
+            viewModel.searchLine(termo)
             advanceTimeBy(100)
 
-            assertEquals(listaLinhas, viewModel.linhasEncontradas.value)
+            assertEquals(listaLinhas, viewModel.foundLines.value)
             assertNull(viewModel.errorMessage.value)
         }
 
     @Test
     fun `pesquisarLinha DEVE setar erro QUANDO falha`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarLinhas(any()) } throws Exception("Erro Busca")
+            coEvery { repository.searchLines(any()) } throws Exception("Erro Busca")
 
-            viewModel.pesquisarLinha("teste")
+            viewModel.searchLine("teste")
             advanceTimeBy(100)
 
             assertEquals("Erro na busca: Erro Busca", viewModel.errorMessage.value)
@@ -126,17 +126,17 @@ class MapViewModelTest {
     fun `carregarOnibusDaLinha DEVE carregar paradas E iniciar refresh de onibus`() =
         runTest(testDispatcher) {
             val codigoLinha = 123
-            val listaParadas = listOf(mockk<Parada>())
-            val listaOnibus = listOf(mockk<Onibus>())
+            val listaParadas = listOf(mockk<Stop>())
+            val listaOnibus = listOf(mockk<Bus>())
 
-            coEvery { repository.buscarParadasPorLinha(codigoLinha) } returns listaParadas
-            coEvery { repository.buscarPosicoesPorLinha(codigoLinha) } returns listaOnibus
+            coEvery { repository.getStopsByLine(codigoLinha) } returns listaParadas
+            coEvery { repository.getPositionsByLine(codigoLinha) } returns listaOnibus
 
-            viewModel.carregarOnibusDaLinha(codigoLinha)
+            viewModel.loadBusesByLine(codigoLinha)
             advanceTimeBy(100)
 
-            assertEquals(listaParadas, viewModel.paradasList.value)
-            assertEquals(listaOnibus, viewModel.onibusList.value)
+            assertEquals(listaParadas, viewModel.stopList.value)
+            assertEquals(listaOnibus, viewModel.busList.value)
 
             viewModel.stopRefresh()
         }
@@ -146,13 +146,13 @@ class MapViewModelTest {
         runTest(testDispatcher) {
             val codigoLinha = 123
 
-            coEvery { repository.buscarParadasPorLinha(codigoLinha) } throws Exception("Erro Parada")
-            coEvery { repository.buscarPosicoesPorLinha(codigoLinha) } returns emptyList()
+            coEvery { repository.getStopsByLine(codigoLinha) } throws Exception("Erro Stop")
+            coEvery { repository.getPositionsByLine(codigoLinha) } returns emptyList()
 
-            viewModel.carregarOnibusDaLinha(codigoLinha)
+            viewModel.loadBusesByLine(codigoLinha)
             advanceTimeBy(100)
 
-            coVerify { repository.buscarPosicoesPorLinha(codigoLinha) }
+            coVerify { repository.getPositionsByLine(codigoLinha) }
 
             viewModel.stopRefresh()
         }
@@ -161,21 +161,21 @@ class MapViewModelTest {
     fun `buscarPrevisaoDaParada DEVE atualizar previsoes QUANDO sucesso`() =
         runTest(testDispatcher) {
             val codigoParada = 999
-            val listaPrevisoes = listOf(mockk<Previsao>())
-            coEvery { repository.buscarPrevisaoParada(codigoParada) } returns listaPrevisoes
+            val listaPrevisoes = listOf(mockk<Prediction>())
+            coEvery { repository.getStopPredictions(codigoParada) } returns listaPrevisoes
 
-            viewModel.buscarPrevisaoDaParada(codigoParada)
+            viewModel.fetchStopPredictions(codigoParada)
             advanceTimeBy(100)
 
-            assertEquals(listaPrevisoes, viewModel.previsoes.value)
+            assertEquals(listaPrevisoes, viewModel.predictions.value)
         }
 
     @Test
     fun `buscarPrevisaoDaParada DEVE setar erro QUANDO falha`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarPrevisaoParada(any()) } throws Exception("Fail")
+            coEvery { repository.getStopPredictions(any()) } throws Exception("Fail")
 
-            viewModel.buscarPrevisaoDaParada(1)
+            viewModel.fetchStopPredictions(1)
             advanceTimeBy(100)
 
             assertEquals("Erro na previsão: Fail", viewModel.errorMessage.value)
@@ -184,20 +184,20 @@ class MapViewModelTest {
     @Test
     fun `buscarListaCorredores DEVE atualizar lista QUANDO sucesso`() =
         runTest(testDispatcher) {
-            val listaCorredores = listOf(mockk<Corredor>())
-            coEvery { repository.buscarCorredores() } returns listaCorredores
+            val listaCorredores = listOf(mockk<Corridor>())
+            coEvery { repository.getCorridors() } returns listaCorredores
 
-            viewModel.buscarListaCorredores()
+            viewModel.fetchCorridors()
             advanceTimeBy(100)
 
-            assertEquals(listaCorredores, viewModel.corredores.value)
+            assertEquals(listaCorredores, viewModel.corridors.value)
         }
 
     @Test
     fun `buscarListaCorredores DEVE setar erro QUANDO falha`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarCorredores() } throws Exception("Fail")
-            viewModel.buscarListaCorredores()
+            coEvery { repository.getCorridors() } throws Exception("Fail")
+            viewModel.fetchCorridors()
             advanceTimeBy(100)
             assertEquals("Erro ao buscar corredores: Fail", viewModel.errorMessage.value)
         }
@@ -206,9 +206,9 @@ class MapViewModelTest {
     fun `carregarMapaCorredores DEVE atualizar kmlData QUANDO sucesso`() =
         runTest(testDispatcher) {
             val inputStream = mockk<InputStream>()
-            coEvery { repository.buscarKmlCorredores() } returns inputStream
+            coEvery { repository.getCorridorsKml() } returns inputStream
 
-            viewModel.carregarMapaCorredores()
+            viewModel.loadCorridorsMap()
             advanceTimeBy(100)
 
             assertEquals(inputStream, viewModel.kmlData.value)
@@ -217,8 +217,8 @@ class MapViewModelTest {
     @Test
     fun `carregarMapaCorredores DEVE setar erro QUANDO falha`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarKmlCorredores() } throws Exception("KML Fail")
-            viewModel.carregarMapaCorredores()
+            coEvery { repository.getCorridorsKml() } throws Exception("KML Fail")
+            viewModel.loadCorridorsMap()
             advanceTimeBy(100)
             assertEquals("Erro ao baixar mapa de corredores: KML Fail", viewModel.errorMessage.value)
         }
@@ -227,9 +227,9 @@ class MapViewModelTest {
     fun `carregarMapaGeral DEVE atualizar kmlData QUANDO sucesso`() =
         runTest(testDispatcher) {
             val inputStream = mockk<InputStream>()
-            coEvery { repository.buscarKmlGeral() } returns inputStream
+            coEvery { repository.getGeneralKml() } returns inputStream
 
-            viewModel.carregarMapaGeral()
+            viewModel.loadGeneralMap()
             advanceTimeBy(100)
 
             assertEquals(inputStream, viewModel.kmlData.value)
@@ -238,8 +238,8 @@ class MapViewModelTest {
     @Test
     fun `carregarMapaGeral DEVE setar erro QUANDO falha`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarKmlGeral() } throws Exception("General Fail")
-            viewModel.carregarMapaGeral()
+            coEvery { repository.getGeneralKml() } throws Exception("General Fail")
+            viewModel.loadGeneralMap()
             advanceTimeBy(100)
             assertEquals("Erro ao baixar mapa geral: General Fail", viewModel.errorMessage.value)
         }
@@ -247,14 +247,14 @@ class MapViewModelTest {
     @Test
     fun `stopRefresh DEVE cancelar o job`() =
         runTest(testDispatcher) {
-            coEvery { repository.buscarPosicoes() } returns emptyList()
-            viewModel.buscarOnibus()
+            coEvery { repository.getPositions() } returns emptyList()
+            viewModel.fetchBuses()
             advanceTimeBy(100)
 
             viewModel.stopRefresh()
 
             clearMocks(repository, answers = false)
             advanceTimeBy(20_000)
-            coVerify(exactly = 0) { repository.buscarPosicoes() }
+            coVerify(exactly = 0) { repository.getPositions() }
         }
 }
