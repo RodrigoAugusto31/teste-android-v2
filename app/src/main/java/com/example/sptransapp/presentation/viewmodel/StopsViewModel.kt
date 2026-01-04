@@ -21,88 +21,90 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class StopsViewModel @Inject constructor(
-    private val searchLinesUseCase: SearchLinesUseCase,
-    private val getStopsUseCase: GetStopsUseCase,
-    private val getStopPredictionsUseCase: GetStopPredictionsUseCase,
-    @ApplicationContext private val context: Context
-) : ViewModel() {
+class StopsViewModel
+    @Inject
+    constructor(
+        private val searchLinesUseCase: SearchLinesUseCase,
+        private val getStopsUseCase: GetStopsUseCase,
+        private val getStopPredictionsUseCase: GetStopPredictionsUseCase,
+        @ApplicationContext private val context: Context,
+    ) : ViewModel() {
+        private val _stopList = MutableLiveData<List<Stop>>()
+        val stopList: LiveData<List<Stop>> = _stopList
 
-    private val _stopList = MutableLiveData<List<Stop>>()
-    val stopList: LiveData<List<Stop>> = _stopList
+        private val _foundLines = MutableLiveData<List<Line>>()
+        val foundLines: LiveData<List<Line>> = _foundLines
 
-    private val _foundLines = MutableLiveData<List<Line>>()
-    val foundLines: LiveData<List<Line>> = _foundLines
+        private val _predictions = MutableLiveData<List<Prediction>>()
+        val predictions: LiveData<List<Prediction>> = _predictions
 
-    private val _predictions = MutableLiveData<List<Prediction>>()
-    val predictions: LiveData<List<Prediction>> = _predictions
+        private val _isLoading = MutableLiveData<Boolean>()
+        val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
+        private val _errorMessage = MutableLiveData<String?>()
+        val errorMessage: LiveData<String?> = _errorMessage
 
-    private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+        fun searchLine(query: String) {
+            if (query.isBlank()) return
+            _isLoading.value = true
+            _errorMessage.value = null
 
-    fun searchLine(query: String) {
-        if (query.isBlank()) return
-        _isLoading.value = true
-        _errorMessage.value = null
-
-        viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    searchLinesUseCase(query)
-                }
-                _foundLines.value = result
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.search_error_message, e.message)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun loadStops(lineCode: Int) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            getStopsUseCase(lineCode)
-                .catch { e ->
-                    _errorMessage.value = context.getString(R.string.att_error_message, e.message)
+            viewModelScope.launch {
+                try {
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            searchLinesUseCase(query)
+                        }
+                    _foundLines.value = result
+                } catch (e: Exception) {
+                    _errorMessage.value = context.getString(R.string.search_error_message, e.message)
+                } finally {
                     _isLoading.value = false
                 }
-                .collect { stops ->
-                    _stopList.value = stops
-                    _isLoading.value = false
-                }
-        }
-    }
-
-    fun fetchStopPredictions(stopCode: Int) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    getStopPredictionsUseCase(stopCode)
-                }
-                _predictions.value = result
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.prediction_error_message, e.message)
-            } finally {
-                _isLoading.value = false
             }
         }
-    }
 
-    fun clearSearchResults() {
-        _foundLines.value = emptyList()
-    }
+        fun loadStops(lineCode: Int) {
+            _isLoading.value = true
+            viewModelScope.launch {
+                getStopsUseCase(lineCode)
+                    .catch { e ->
+                        _errorMessage.value = context.getString(R.string.att_error_message, e.message)
+                        _isLoading.value = false
+                    }.collect { stops ->
+                        _stopList.value = stops
+                        _isLoading.value = false
+                    }
+            }
+        }
 
-    fun clearPredictions() {
-        _predictions.value = emptyList()
-    }
+        fun fetchStopPredictions(stopCode: Int) {
+            _isLoading.value = true
+            viewModelScope.launch {
+                try {
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            getStopPredictionsUseCase(stopCode)
+                        }
+                    _predictions.value = result
+                } catch (e: Exception) {
+                    _errorMessage.value = context.getString(R.string.prediction_error_message, e.message)
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
 
-    fun clearMapData() {
-        _stopList.value = emptyList()
-        clearPredictions()
+        fun clearSearchResults() {
+            _foundLines.value = emptyList()
+        }
+
+        fun clearPredictions() {
+            _predictions.value = emptyList()
+        }
+
+        fun clearMapData() {
+            _stopList.value = emptyList()
+            clearPredictions()
+        }
     }
-}

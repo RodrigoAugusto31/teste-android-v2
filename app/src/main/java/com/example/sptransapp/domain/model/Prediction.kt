@@ -6,7 +6,5 @@ data class Prediction(
     val arrivalTime: String,
     val vehiclePrefix: String,
 ) {
-    override fun toString(): String {
-        return "Line $line ($destination)\nChegada: $arrivalTime (Veículo $vehiclePrefix)"
-    }
+    override fun toString(): String = "Line $line ($destination)\nChegada: $arrivalTime (Veículo $vehiclePrefix)"
 }

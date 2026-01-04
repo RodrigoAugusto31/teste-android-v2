@@ -12,9 +12,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class LineSelectionBottomSheet(
     private val lines: List<Line>,
-    private val onLineSelected: (Line) -> Unit
+    private val onLineSelected: (Line) -> Unit,
 ) : BottomSheetDialogFragment() {
-
     private var _binding: BottomSheetLineSelectionBinding? = null
     private val binding get() = _binding!!
 
@@ -28,19 +27,23 @@ class LineSelectionBottomSheet(
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         _binding = BottomSheetLineSelectionBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
-        val adapter = LineSelectionAdapter(lines) { line ->
-            onLineSelected(line)
-            dismiss()
-        }
+        val adapter =
+            LineSelectionAdapter(lines) { line ->
+                onLineSelected(line)
+                dismiss()
+            }
 
         binding.rvLinhasSelection.adapter = adapter
     }

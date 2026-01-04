@@ -18,8 +18,8 @@ import com.example.sptransapp.R
 import com.example.sptransapp.databinding.FragmentBusBinding
 import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Line
-import com.example.sptransapp.presentation.ui.common.LineSelectionBottomSheet
 import com.example.sptransapp.presentation.ui.bus.model.BusClusterItem
+import com.example.sptransapp.presentation.ui.common.LineSelectionBottomSheet
 import com.example.sptransapp.presentation.viewmodel.BusViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -36,8 +36,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class BusFragment : Fragment(), OnMapReadyCallback {
-
+class BusFragment :
+    Fragment(),
+    OnMapReadyCallback {
     private var _binding: FragmentBusBinding? = null
     private val binding get() = _binding!!
 
@@ -56,14 +57,18 @@ class BusFragment : Fragment(), OnMapReadyCallback {
     private val currentClusterItems = mutableMapOf<String, BusClusterItem>()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentBusBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
         setupMap()
         setupUI()
@@ -84,7 +89,9 @@ class BusFragment : Fragment(), OnMapReadyCallback {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch()
                 true
-            } else { false }
+            } else {
+                false
+            }
         }
         binding.btnClearFilter.setOnClickListener {
             binding.edittextSearchBus.text.clear()
@@ -126,7 +133,6 @@ class BusFragment : Fragment(), OnMapReadyCallback {
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 launch {
                     viewModel.busList.collect { busList ->
                         updateMapMarkersSmart(busList)
@@ -153,8 +159,12 @@ class BusFragment : Fragment(), OnMapReadyCallback {
                 showLineSelectionDialog(lines)
                 isSearchingFromThisScreen = false
             } else if (lines.isEmpty() && isSearchingFromThisScreen) {
-                Toast.makeText(requireContext(),
-                    getString(R.string.no_lines_found_message), Toast.LENGTH_LONG).show()
+                Toast
+                    .makeText(
+                        requireContext(),
+                        getString(R.string.no_lines_found_message),
+                        Toast.LENGTH_LONG,
+                    ).show()
                 isSearchingFromThisScreen = false
             }
         }
@@ -162,7 +172,17 @@ class BusFragment : Fragment(), OnMapReadyCallback {
         viewModel.kmlData.observe(viewLifecycleOwner) { inputStream ->
             if (inputStream != null && googleMap != null) {
                 try {
-                    val layer = KmlLayer(googleMap, inputStream, requireContext(), markerManager, polygonManager, polylineManager, groundOverlayManager, null)
+                    val layer =
+                        KmlLayer(
+                            googleMap,
+                            inputStream,
+                            requireContext(),
+                            markerManager,
+                            polygonManager,
+                            polylineManager,
+                            groundOverlayManager,
+                            null,
+                        )
                     layer.addLayerToMap()
                     Toast.makeText(requireContext(), getString(R.string.map_loaded_message), Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
@@ -213,8 +233,8 @@ class BusFragment : Fragment(), OnMapReadyCallback {
 
             if (existingItem != null) {
                 if (existingItem.position.latitude != bus.latitude ||
-                    existingItem.position.longitude != bus.longitude) {
-
+                    existingItem.position.longitude != bus.longitude
+                ) {
                     clusterManager.removeItem(existingItem)
 
                     val newItem = BusClusterItem(bus)
@@ -233,14 +253,15 @@ class BusFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun showLineSelectionDialog(lines: List<Line>) {
-        val bottomSheet = LineSelectionBottomSheet(lines) { selectedLine ->
+        val bottomSheet =
+            LineSelectionBottomSheet(lines) { selectedLine ->
 
-            clusterManager.clearItems()
-            clusterManager.cluster()
+                clusterManager.clearItems()
+                clusterManager.cluster()
 
-            viewModel.clearSearchResults()
-            viewModel.loadBusesByLine(selectedLine)
-        }
+                viewModel.clearSearchResults()
+                viewModel.loadBusesByLine(selectedLine)
+            }
         bottomSheet.show(parentFragmentManager, LineSelectionBottomSheet.Companion.TAG)
     }
 

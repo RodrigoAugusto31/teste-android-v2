@@ -9,11 +9,11 @@ import com.example.sptransapp.data.database.LineDao
 import com.example.sptransapp.data.database.StopDao
 import com.example.sptransapp.data.database.toEntity
 import com.example.sptransapp.data.utils.KmlHelper
+import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Corridor
 import com.example.sptransapp.domain.model.Line
-import com.example.sptransapp.domain.model.Bus
-import com.example.sptransapp.domain.model.Stop
 import com.example.sptransapp.domain.model.Prediction
+import com.example.sptransapp.domain.model.Stop
 import com.example.sptransapp.domain.repository.BusRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -25,9 +25,8 @@ class BusRepositoryImpl(
     private val lineDao: LineDao,
     private val stopDao: StopDao,
     private val corridorDao: CorridorDao,
-    private val context: Context
+    private val context: Context,
 ) : BusRepository {
-
     override suspend fun getPositions(): List<Bus> {
         val response = api.getPositions()
 
@@ -130,32 +129,33 @@ class BusRepositoryImpl(
         return domainBusList
     }
 
-    override fun getStopsByLine(lineCode: Int): Flow<List<Stop>> = flow {
-        val localData = stopDao.getStopsByLine(lineCode).first()
-        if (localData.isNotEmpty()) {
-            emit(localData.map { it.toDomain() })
-        }
-
-        try {
-            val response = api.getStopsByLine(lineCode)
-            if (response.isSuccessful && response.body() != null) {
-                val apiStops = response.body()!!.map { dto ->
-                    Stop(
-                        stopCode = dto.stopCode,
-                        name = "${dto.stopName} - ${dto.address ?: ""}",
-                        latitude = dto.latitude,
-                        longitude = dto.longitude
-                    )
-                }
-
-
-                stopDao.insertAll(apiStops.map { it.toEntity(lineCode) })
-                emit(apiStops)
+    override fun getStopsByLine(lineCode: Int): Flow<List<Stop>> =
+        flow {
+            val localData = stopDao.getStopsByLine(lineCode).first()
+            if (localData.isNotEmpty()) {
+                emit(localData.map { it.toDomain() })
             }
-        } catch (e: Exception) {
-            if (localData.isEmpty()) throw e
+
+            try {
+                val response = api.getStopsByLine(lineCode)
+                if (response.isSuccessful && response.body() != null) {
+                    val apiStops =
+                        response.body()!!.map { dto ->
+                            Stop(
+                                stopCode = dto.stopCode,
+                                name = "${dto.stopName} - ${dto.address ?: ""}",
+                                latitude = dto.latitude,
+                                longitude = dto.longitude,
+                            )
+                        }
+
+                    stopDao.insertAll(apiStops.map { it.toEntity(lineCode) })
+                    emit(apiStops)
+                }
+            } catch (e: Exception) {
+                if (localData.isEmpty()) throw e
+            }
         }
-    }
 
     override suspend fun getStopPredictions(lineCode: Int): List<Prediction> {
         val response = api.getStopPredictions(lineCode)
@@ -182,25 +182,27 @@ class BusRepositoryImpl(
         return predictionList
     }
 
-    override fun getCorridors(): Flow<List<Corridor>> = flow {
-        val localData = corridorDao.getAllCorridors().first()
-        if (localData.isNotEmpty()) {
-            emit(localData.map { it.toDomain() })
-        }
-
-        try {
-            val response = api.getCorridors()
-            if (response.isSuccessful && response.body() != null) {
-                val apiCorridors = response.body()!!.map { dto ->
-                    Corridor(dto.code ?: 0, dto.name ?: "")
-                }
-                corridorDao.insertAll(apiCorridors.map { it.toEntity() })
-                emit(apiCorridors)
+    override fun getCorridors(): Flow<List<Corridor>> =
+        flow {
+            val localData = corridorDao.getAllCorridors().first()
+            if (localData.isNotEmpty()) {
+                emit(localData.map { it.toDomain() })
             }
-        } catch (e: Exception) {
-            if (localData.isEmpty()) throw e
+
+            try {
+                val response = api.getCorridors()
+                if (response.isSuccessful && response.body() != null) {
+                    val apiCorridors =
+                        response.body()!!.map { dto ->
+                            Corridor(dto.code ?: 0, dto.name ?: "")
+                        }
+                    corridorDao.insertAll(apiCorridors.map { it.toEntity() })
+                    emit(apiCorridors)
+                }
+            } catch (e: Exception) {
+                if (localData.isEmpty()) throw e
+            }
         }
-    }
 
     override suspend fun getCorridorsKml(): java.io.InputStream? {
         val response = api.getCorridorsKml()
@@ -227,15 +229,12 @@ class BusRepositoryImpl(
         return null
     }
 
-    override fun getFavoriteLines(): Flow<List<Line>> {
-        return lineDao.getAllFavorites().map { entities ->
+    override fun getFavoriteLines(): Flow<List<Line>> =
+        lineDao.getAllFavorites().map { entities ->
             entities.map { it.toDomainModel() }
         }
-    }
 
-    override fun isFavorite(lineCode: Int): Flow<Boolean> {
-        return lineDao.isFavorite(lineCode)
-    }
+    override fun isFavorite(lineCode: Int): Flow<Boolean> = lineDao.isFavorite(lineCode)
 
     override suspend fun toggleFavorite(line: Line) {
         val isFav = lineDao.isFavorite(line.lineCode).first()

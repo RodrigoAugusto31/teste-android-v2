@@ -28,21 +28,20 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "sptrans_db"
-        ).build()
-    }
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+    ): AppDatabase =
+        Room
+            .databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                "sptrans_db",
+            ).build()
 
     @Provides
-    fun provideLineDao(database: AppDatabase): LineDao {
-        return database.lineDao()
-    }
+    fun provideLineDao(database: AppDatabase): LineDao = database.lineDao()
 
     @Provides
     fun provideStopDao(database: AppDatabase): StopDao = database.stopDao()
@@ -52,65 +51,60 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideCookieJar(): CookieJar {
-        return object : CookieJar {
+    fun provideCookieJar(): CookieJar =
+        object : CookieJar {
             private val cookieStore = HashMap<String, List<Cookie>>()
 
-            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+            override fun saveFromResponse(
+                url: HttpUrl,
+                cookies: List<Cookie>,
+            ) {
                 cookieStore[url.host] = cookies
             }
 
-            override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                return cookieStore[url.host] ?: ArrayList()
-            }
+            override fun loadForRequest(url: HttpUrl): List<Cookie> = cookieStore[url.host] ?: ArrayList()
         }
-    }
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(): AuthInterceptor {
-        return AuthInterceptor()
-    }
+    fun provideAuthInterceptor(): AuthInterceptor = AuthInterceptor()
 
     @Provides
     @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor {
-        return HttpLoggingInterceptor().apply {
+    fun provideLoggingInterceptor(): HttpLoggingInterceptor =
+        HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
-    }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
         cookieJar: CookieJar,
         authInterceptor: AuthInterceptor,
-        loggingInterceptor: HttpLoggingInterceptor
-    ): OkHttpClient {
-        return OkHttpClient.Builder()
+        loggingInterceptor: HttpLoggingInterceptor,
+    ): OkHttpClient =
+        OkHttpClient
+            .Builder()
             .cookieJar(cookieJar)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
-    }
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit =
+        Retrofit
+            .Builder()
             .baseUrl("http://api.olhovivo.sptrans.com.br/v2.1/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-    }
 
     @Provides
     @Singleton
-    fun provideSPTransApi(retrofit: Retrofit): SPTransApi {
-        return retrofit.create(SPTransApi::class.java)
-    }
+    fun provideSPTransApi(retrofit: Retrofit): SPTransApi = retrofit.create(SPTransApi::class.java)
 
     @Provides
     @Singleton
@@ -119,14 +113,13 @@ object AppModule {
         lineDao: LineDao,
         stopDao: StopDao,
         corridorDao: CorridorDao,
-        @ApplicationContext context: Context
-    ): BusRepository {
-        return BusRepositoryImpl(
+        @ApplicationContext context: Context,
+    ): BusRepository =
+        BusRepositoryImpl(
             api = api,
             lineDao = lineDao,
             stopDao = stopDao,
             corridorDao = corridorDao,
-            context = context
+            context = context,
         )
-    }
 }

@@ -9,15 +9,16 @@ data class StopEntity(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val lineRelationCode: Int
+    val lineRelationCode: Int,
 ) {
     fun toDomain() = Stop(stopCode, name, latitude, longitude)
 }
 
-fun Stop.toEntity(lineCode: Int) = StopEntity(
-    stopCode = this.stopCode,
-    name = this.name,
-    latitude = this.latitude,
-    longitude = this.longitude,
-    lineRelationCode = lineCode
-)
+fun Stop.toEntity(lineCode: Int) =
+    StopEntity(
+        stopCode = this.stopCode,
+        name = this.name,
+        latitude = this.latitude,
+        longitude = this.longitude,
+        lineRelationCode = lineCode,
+    )

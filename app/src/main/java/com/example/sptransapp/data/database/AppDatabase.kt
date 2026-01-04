@@ -6,10 +6,12 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [LineEntity::class, StopEntity::class, CorridorEntity::class],
     version = 2,
-    exportSchema = false
+    exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun lineDao(): LineDao
+
     abstract fun stopDao(): StopDao
+
     abstract fun corridorDao(): CorridorDao
 }

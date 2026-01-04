@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LineDao {
-
     @Query("SELECT * FROM favorite_lines")
     fun getAllFavorites(): Flow<List<LineEntity>>
 

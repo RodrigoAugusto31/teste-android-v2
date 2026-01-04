@@ -1,10 +1,10 @@
 package com.example.sptransapp.domain.repository
 
+import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Corridor
 import com.example.sptransapp.domain.model.Line
-import com.example.sptransapp.domain.model.Bus
-import com.example.sptransapp.domain.model.Stop
 import com.example.sptransapp.domain.model.Prediction
+import com.example.sptransapp.domain.model.Stop
 import kotlinx.coroutines.flow.Flow
 
 interface BusRepository {
@@ -31,6 +31,4 @@ interface BusRepository {
     fun isFavorite(lineCode: Int): Flow<Boolean>
 
     suspend fun toggleFavorite(line: Line)
-
-
 }

@@ -10,23 +10,20 @@ data class LineEntity(
     val fullSign: String,
     val name: String,
     val direction: Int,
-
 ) {
-    fun toDomainModel(): Line {
-        return Line(
+    fun toDomainModel(): Line =
+        Line(
             lineCode = lineCode,
             fullSign = fullSign,
             name = name,
             direction = direction,
         )
-    }
 }
 
-fun Line.toEntity(): LineEntity {
-    return LineEntity(
+fun Line.toEntity(): LineEntity =
+    LineEntity(
         lineCode = this.lineCode,
         fullSign = this.fullSign,
         name = this.name,
         direction = this.direction,
     )
-}

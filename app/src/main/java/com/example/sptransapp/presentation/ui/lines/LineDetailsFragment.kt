@@ -42,8 +42,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class LineDetailsFragment : Fragment(), OnMapReadyCallback {
-
+class LineDetailsFragment :
+    Fragment(),
+    OnMapReadyCallback {
     private var _binding: FragmentLineDetailsBinding? = null
     private val binding get() = _binding!!
 
@@ -64,12 +65,19 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
     private val busMarkersMap = mutableMapOf<String, com.google.android.gms.maps.model.Marker>()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
         _binding = FragmentLineDetailsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
         arguments?.let { bundle ->
@@ -95,10 +103,11 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         }
 
         binding.btnLayers.setOnClickListener {
-            val bottomSheet = LayersBottomSheet(selectedLayerId) { newId ->
-                selectedLayerId = newId
-                handleLayerSelection(newId)
-            }
+            val bottomSheet =
+                LayersBottomSheet(selectedLayerId) { newId ->
+                    selectedLayerId = newId
+                    handleLayerSelection(newId)
+                }
             bottomSheet.show(parentFragmentManager, LayersBottomSheet.Companion.TAG)
         }
 
@@ -112,13 +121,21 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         if (id == null) {
             currentKmlLayer?.removeLayerFromMap()
             currentKmlLayer = null
-            Toast.makeText(requireContext(),
-                getString(R.string.hidden_layers_message), Toast.LENGTH_SHORT).show()
+            Toast
+                .makeText(
+                    requireContext(),
+                    getString(R.string.hidden_layers_message),
+                    Toast.LENGTH_SHORT,
+                ).show()
             return
         }
 
-        Toast.makeText(requireContext(),
-            getString(R.string.loading_layer_message), Toast.LENGTH_SHORT).show()
+        Toast
+            .makeText(
+                requireContext(),
+                getString(R.string.loading_layer_message),
+                Toast.LENGTH_SHORT,
+            ).show()
         currentKmlLayer?.removeLayerFromMap()
         currentKmlLayer = null
 
@@ -140,8 +157,12 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
             val tag = marker.tag
             if (tag is Stop) {
                 selectedStop = tag
-                Toast.makeText(requireContext(),
-                    getString(R.string.search_predictions_message), Toast.LENGTH_SHORT).show()
+                Toast
+                    .makeText(
+                        requireContext(),
+                        getString(R.string.search_predictions_message),
+                        Toast.LENGTH_SHORT,
+                    ).show()
                 viewModel.fetchStopPredictions(tag.stopCode)
                 true
             } else {
@@ -166,12 +187,13 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
             if (stopList.isNotEmpty()) {
                 stopList.forEach { stop ->
-                    stopsMarkerCollection.addMarker(
-                        MarkerOptions()
-                            .position(LatLng(stop.latitude, stop.longitude))
-                            .title(stop.name)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                    )?.tag = stop
+                    stopsMarkerCollection
+                        .addMarker(
+                            MarkerOptions()
+                                .position(LatLng(stop.latitude, stop.longitude))
+                                .title(stop.name)
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)),
+                        )?.tag = stop
                 }
             }
         }
@@ -179,13 +201,18 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         viewModel.predictions.observe(viewLifecycleOwner) { list ->
             if (isVisible && list.isNotEmpty()) {
                 val stopName = selectedStop?.name ?: getString(R.string.stop_label)
-                val bottomSheet = PredictionBottomSheet(stopName, list) {
-                    openRouteInMaps()
-                }
+                val bottomSheet =
+                    PredictionBottomSheet(stopName, list) {
+                        openRouteInMaps()
+                    }
                 bottomSheet.show(parentFragmentManager, PredictionBottomSheet.Companion.TAG)
             } else if (isVisible && selectedStop != null) {
-                Toast.makeText(requireContext(),
-                    getString(R.string.no_stop_prediction_message), Toast.LENGTH_SHORT).show()
+                Toast
+                    .makeText(
+                        requireContext(),
+                        getString(R.string.no_stop_prediction_message),
+                        Toast.LENGTH_SHORT,
+                    ).show()
             }
         }
 
@@ -194,17 +221,25 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                 try {
                     currentKmlLayer?.removeLayerFromMap()
 
-                    val layer = KmlLayer(
-                        googleMap,
-                        inputStream,
-                        requireContext(),
-                        markerManager,
-                        null, null, null, null
-                    )
+                    val layer =
+                        KmlLayer(
+                            googleMap,
+                            inputStream,
+                            requireContext(),
+                            markerManager,
+                            null,
+                            null,
+                            null,
+                            null,
+                        )
                     layer.addLayerToMap()
                     currentKmlLayer = layer
-                    Toast.makeText(requireContext(),
-                        getString(R.string.layer_loaded_message), Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            requireContext(),
+                            getString(R.string.layer_loaded_message),
+                            Toast.LENGTH_SHORT,
+                        ).show()
 
                     layer.setOnFeatureClickListener { feature ->
                         val name = feature.getProperty("name") ?: getString(R.string.info_label)
@@ -223,9 +258,11 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                             textViewDescription.text = formattedDesc
                         }
 
-                        val dialog = AlertDialog.Builder(requireContext())
-                            .setView(dialogView)
-                            .create()
+                        val dialog =
+                            AlertDialog
+                                .Builder(requireContext())
+                                .setView(dialogView)
+                                .create()
 
                         dialog.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
 
@@ -235,11 +272,13 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
                         dialog.show()
                     }
-
-
                 } catch (e: Exception) {
-                    Toast.makeText(requireContext(),
-                        getString(R.string.kml_error_message), Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            requireContext(),
+                            getString(R.string.kml_error_message),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                     e.printStackTrace()
                 }
             }
@@ -270,8 +309,12 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         try {
             startActivity(mapIntent)
         } catch (_: Exception) {
-            Toast.makeText(requireContext(),
-                getString(R.string.google_maps_error_message), Toast.LENGTH_SHORT).show()
+            Toast
+                .makeText(
+                    requireContext(),
+                    getString(R.string.google_maps_error_message),
+                    Toast.LENGTH_SHORT,
+                ).show()
         }
     }
 
@@ -300,21 +343,21 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
             if (existingMarker != null) {
                 if (existingMarker.position.latitude != bus.latitude ||
-                    existingMarker.position.longitude != bus.longitude) {
-
+                    existingMarker.position.longitude != bus.longitude
+                ) {
                     MarkerAnimator.animateMarkerToGB(
                         existingMarker,
                         LatLng(bus.latitude, bus.longitude),
-                        LatLngInterpolator.Linear()
+                        LatLngInterpolator.Linear(),
                     )
                 }
                 existingMarker.snippet = bus.fullSign
-
             } else {
-                val markerOptions = MarkerOptions()
-                    .position(LatLng(bus.latitude, bus.longitude))
-                    .title(bus.prefix)
-                    .snippet(bus.fullSign)
+                val markerOptions =
+                    MarkerOptions()
+                        .position(LatLng(bus.latitude, bus.longitude))
+                        .title(bus.prefix)
+                        .snippet(bus.fullSign)
 
                 val marker = busMarkerCollection.addMarker(markerOptions)
 

@@ -9,21 +9,22 @@ data class LayerOption(
     val id: Int,
     val title: String,
     val iconRes: Int,
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
 )
 
 class LayersAdapter(
     private val options: List<LayerOption>,
-    private val onOptionClick: (LayerOption) -> Unit
+    private val onOptionClick: (LayerOption) -> Unit,
 ) : RecyclerView.Adapter<LayersAdapter.ViewHolder>() {
-
     private var selectedItemPosition: Int = RecyclerView.NO_POSITION
 
     init {
         selectedItemPosition = options.indexOfFirst { it.isSelected }
     }
 
-    inner class ViewHolder(private val binding: ItemLayerBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class ViewHolder(
+        private val binding: ItemLayerBinding,
+    ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: LayerOption) {
             binding.textviewTitle.text = item.title
             binding.imageviewRouteIcon.setImageResource(item.iconRes)
@@ -53,8 +54,7 @@ class LayersAdapter(
             options[newPosition].isSelected = false
             notifyItemChanged(newPosition)
             selectedItemPosition = RecyclerView.NO_POSITION
-        }
-        else {
+        } else {
             if (selectedItemPosition != RecyclerView.NO_POSITION) {
                 options[selectedItemPosition].isSelected = false
                 notifyItemChanged(selectedItemPosition)
@@ -66,12 +66,18 @@ class LayersAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int,
+    ): ViewHolder {
         val binding = ItemLayerBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: ViewHolder,
+        position: Int,
+    ) {
         holder.bind(options[position])
     }
 

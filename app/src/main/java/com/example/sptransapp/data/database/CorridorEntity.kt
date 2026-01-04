@@ -7,7 +7,7 @@ import com.example.sptransapp.domain.model.Corridor
 @Entity(tableName = "corridors")
 data class CorridorEntity(
     @PrimaryKey val code: Int,
-    val name: String
+    val name: String,
 ) {
     fun toDomain() = Corridor(code, name)
 }

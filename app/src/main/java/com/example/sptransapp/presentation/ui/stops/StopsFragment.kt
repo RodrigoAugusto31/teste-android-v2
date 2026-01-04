@@ -31,8 +31,9 @@ import com.google.maps.android.collections.MarkerManager
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class StopsFragment : Fragment(), OnMapReadyCallback {
-
+class StopsFragment :
+    Fragment(),
+    OnMapReadyCallback {
     private var _binding: FragmentStopsBinding? = null
     private val binding get() = _binding!!
 
@@ -47,14 +48,18 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
     private var isSearchingFromThisScreen = false
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentStopsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
         setupMap()
@@ -85,8 +90,12 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
             binding.btnClearMap.isVisible = false
             stopsMarkerCollection.clear()
             viewModel.clearMapData()
-            Toast.makeText(requireContext(),
-                getString(R.string.clean_map_message), Toast.LENGTH_SHORT).show()
+            Toast
+                .makeText(
+                    requireContext(),
+                    getString(R.string.clean_map_message),
+                    Toast.LENGTH_SHORT,
+                ).show()
         }
     }
 
@@ -141,18 +150,22 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
                     CameraUpdateFactory.newLatLngZoom(
                         LatLng(
                             primeira.latitude,
-                            primeira.longitude
-                        ), 14f))
+                            primeira.longitude,
+                        ),
+                        14f,
+                    ),
+                )
                 binding.btnClearMap.isVisible = true
             }
 
             stopList.forEach { parada ->
-                val marker = stopsMarkerCollection.addMarker(
-                    MarkerOptions()
-                        .position(LatLng(parada.latitude, parada.longitude))
-                        .title("Stop: ${parada.name}")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                )
+                val marker =
+                    stopsMarkerCollection.addMarker(
+                        MarkerOptions()
+                            .position(LatLng(parada.latitude, parada.longitude))
+                            .title("Stop: ${parada.name}")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)),
+                    )
                 marker?.tag = parada
             }
         }
@@ -160,9 +173,10 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
         viewModel.predictions.observe(viewLifecycleOwner) { list ->
             if (isVisible && list.isNotEmpty()) {
                 val nomeParada = selectedStop?.name ?: "Stop"
-                val bottomSheet = PredictionBottomSheet(nomeParada, list) {
-                    openRouteInMaps()
-                }
+                val bottomSheet =
+                    PredictionBottomSheet(nomeParada, list) {
+                        openRouteInMaps()
+                    }
                 bottomSheet.show(parentFragmentManager, PredictionBottomSheet.Companion.TAG)
             }
         }
@@ -177,13 +191,14 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun showLineSelectionDialog(lines: List<Line>) {
-        val bottomSheet = LineSelectionBottomSheet(lines) { selectedLine ->
-            binding.edittextSearchStop.setText(selectedLine.fullSign)
-            stopsMarkerCollection.clear()
-            viewModel.clearSearchResults()
+        val bottomSheet =
+            LineSelectionBottomSheet(lines) { selectedLine ->
+                binding.edittextSearchStop.setText(selectedLine.fullSign)
+                stopsMarkerCollection.clear()
+                viewModel.clearSearchResults()
 
-            viewModel.loadStops(selectedLine.lineCode)
-        }
+                viewModel.loadStops(selectedLine.lineCode)
+            }
         bottomSheet.show(parentFragmentManager, LineSelectionBottomSheet.Companion.TAG)
     }
 

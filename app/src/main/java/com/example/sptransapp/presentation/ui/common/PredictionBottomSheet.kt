@@ -13,18 +13,24 @@ class
 PredictionBottomSheet(
     private val stopName: String,
     private val predictions: List<Prediction>,
-    private val onRouteClick: () -> Unit
+    private val onRouteClick: () -> Unit,
 ) : BottomSheetDialogFragment() {
-
     private var _binding: BottomSheetPredictionBinding? = null
     private val binding get() = _binding!!
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
         _binding = BottomSheetPredictionBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.textviewStopName.text = stopName

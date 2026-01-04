@@ -2,9 +2,9 @@ package com.example.sptransapp.data.api
 
 import com.example.sptransapp.data.model.CorridorDto
 import com.example.sptransapp.data.model.LineSearchDto
-import com.example.sptransapp.data.model.StopDto
 import com.example.sptransapp.data.model.PositionResponse
 import com.example.sptransapp.data.model.PredictionResponse
+import com.example.sptransapp.data.model.StopDto
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET

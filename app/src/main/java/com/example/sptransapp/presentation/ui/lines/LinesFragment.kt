@@ -24,7 +24,6 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class LinesFragment : Fragment() {
-
     private var _binding: FragmentLinesBinding? = null
     private val binding get() = _binding!!
 
@@ -33,14 +32,18 @@ class LinesFragment : Fragment() {
     private lateinit var adapter: LinesAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentLinesBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupUI()
@@ -48,10 +51,11 @@ class LinesFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = LinesAdapter { line ->
-            val bundle = bundleOf("selectedLine" to line)
-            findNavController().navigate(R.id.nav_line_details, bundle)
-        }
+        adapter =
+            LinesAdapter { line ->
+                val bundle = bundleOf("selectedLine" to line)
+                findNavController().navigate(R.id.nav_line_details, bundle)
+            }
 
         binding.recyclerviewLines.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerviewLines.adapter = adapter
@@ -69,16 +73,29 @@ class LinesFragment : Fragment() {
             }
         }
 
-        binding.edittextSearchLines.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        binding.edittextSearchLines.addTextChangedListener(
+            object : TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) {}
 
-            override fun afterTextChanged(s: Editable?) {
-                if (s.isNullOrEmpty()) {
-                    viewModel.loadFavorites()
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) {}
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (s.isNullOrEmpty()) {
+                        viewModel.loadFavorites()
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     private fun performSearch() {

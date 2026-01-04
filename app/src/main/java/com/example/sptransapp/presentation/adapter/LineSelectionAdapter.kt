@@ -8,10 +8,11 @@ import com.example.sptransapp.domain.model.Line
 
 class LineSelectionAdapter(
     private val lines: List<Line>,
-    private val onLineClick: (Line) -> Unit
+    private val onLineClick: (Line) -> Unit,
 ) : RecyclerView.Adapter<LineSelectionAdapter.ViewHolder>() {
-
-    inner class ViewHolder(private val binding: ItemLineBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class ViewHolder(
+        private val binding: ItemLineBinding,
+    ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(line: Line) {
             binding.textviewItemSign.text = line.fullSign
             binding.textviewItemName.text = line.name
@@ -20,12 +21,18 @@ class LineSelectionAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int,
+    ): ViewHolder {
         val binding = ItemLineBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: ViewHolder,
+        position: Int,
+    ) {
         holder.bind(lines[position])
     }
 

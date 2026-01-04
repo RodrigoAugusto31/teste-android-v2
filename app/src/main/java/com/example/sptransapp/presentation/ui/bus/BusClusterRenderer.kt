@@ -10,10 +10,12 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer
 class BusClusterRenderer(
     context: Context,
     map: GoogleMap,
-    clusterManager: ClusterManager<BusClusterItem>
+    clusterManager: ClusterManager<BusClusterItem>,
 ) : DefaultClusterRenderer<BusClusterItem>(context, map, clusterManager) {
-
-    override fun onBeforeClusterItemRendered(item: BusClusterItem, markerOptions: MarkerOptions) {
+    override fun onBeforeClusterItemRendered(
+        item: BusClusterItem,
+        markerOptions: MarkerOptions,
+    ) {
         markerOptions.title(item.title)
         markerOptions.snippet(item.snippet)
     }

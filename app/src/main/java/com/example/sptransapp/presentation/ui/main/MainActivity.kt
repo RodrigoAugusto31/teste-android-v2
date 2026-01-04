@@ -26,8 +26,9 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = binding.navView
         binding.navView.itemIconTintList = null
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment_activity_main) as NavHostFragment
+        val navHostFragment =
+            supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment_activity_main) as NavHostFragment
 
         val navController = navHostFragment.navController
 
@@ -41,9 +42,11 @@ class MainActivity : AppCompatActivity() {
     private fun showLegend() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_legend, null)
 
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .create()
+        val dialog =
+            AlertDialog
+                .Builder(this)
+                .setView(dialogView)
+                .create()
 
         dialog.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
 
