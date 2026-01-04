@@ -2,21 +2,15 @@ package com.example.sptransapp.presentation.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.sptransapp.databinding.ItemLineBinding
 import com.example.sptransapp.domain.model.Line
 
 class LinesAdapter(
     private val onLinhaClick: (Line) -> Unit
-) : RecyclerView.Adapter<LinesAdapter.LineViewHolder>() {
-
-    private val lines = mutableListOf<Line>()
-
-    fun updateList(newList: List<Line>) {
-        lines.clear()
-        lines.addAll(newList)
-        notifyDataSetChanged()
-    }
+) : ListAdapter<Line, LinesAdapter.LineViewHolder>(LineDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LineViewHolder {
         val binding = ItemLineBinding.inflate(
@@ -26,10 +20,8 @@ class LinesAdapter(
     }
 
     override fun onBindViewHolder(holder: LineViewHolder, position: Int) {
-        holder.bind(lines[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = lines.size
 
     inner class LineViewHolder(private val binding: ItemLineBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -41,6 +33,16 @@ class LinesAdapter(
             binding.root.setOnClickListener {
                 onLinhaClick(line)
             }
+        }
+    }
+
+    class LineDiffCallback : DiffUtil.ItemCallback<Line>() {
+        override fun areItemsTheSame(oldItem: Line, newItem: Line): Boolean {
+            return oldItem.fullSign == newItem.fullSign
+        }
+
+        override fun areContentsTheSame(oldItem: Line, newItem: Line): Boolean {
+            return oldItem == newItem
         }
     }
 }

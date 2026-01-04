@@ -2,8 +2,6 @@ package com.example.sptransapp.presentation.ui.lines
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.os.Build
 import android.os.Bundle
 import android.text.Html
 import android.view.LayoutInflater
@@ -12,15 +10,22 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
+import androidx.core.os.BundleCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.sptransapp.R
 import com.example.sptransapp.databinding.FragmentLineDetailsBinding
+import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Line
 import com.example.sptransapp.domain.model.Stop
+import com.example.sptransapp.presentation.ui.common.LatLngInterpolator
+import com.example.sptransapp.presentation.ui.common.MarkerAnimator
 import com.example.sptransapp.presentation.ui.common.PredictionBottomSheet
 import com.example.sptransapp.presentation.viewmodel.LineDetailsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -34,6 +39,7 @@ import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolylineManager
 import com.google.maps.android.data.kml.KmlLayer
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LineDetailsFragment : Fragment(), OnMapReadyCallback {
@@ -56,6 +62,8 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
     private lateinit var polylineManager: PolylineManager
     private lateinit var routePolylineCollection: PolylineManager.Collection
 
+    private val busMarkersMap = mutableMapOf<String, com.google.android.gms.maps.model.Marker>()
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLineDetailsBinding.inflate(inflater, container, false)
         return binding.root
@@ -64,10 +72,8 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        currentLine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arguments?.getParcelable("selectedLine", Line::class.java)
-        } else {
-            arguments?.getParcelable("selectedLine")
+        arguments?.let { bundle ->
+            currentLine = BundleCompat.getParcelable(bundle, "selectedLine", Line::class.java)
         }
 
         if (currentLine == null) {
@@ -116,11 +122,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         currentKmlLayer?.removeLayerFromMap()
         currentKmlLayer = null
 
-        when (id) {
-            0 -> viewModel.loadCorridorsMap()
-            1 -> viewModel.loadOtherLanesMap()
-            2 -> viewModel.loadGeneralMap()
-        }
+        viewModel.loadMapLayer(id)
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -151,27 +153,11 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun setupObservers() {
-        viewModel.busList.observe(viewLifecycleOwner) { busList ->
-            busMarkerCollection.clear()
-
-            if (busList.isNotEmpty() && viewModel.shouldMoveCamera) {
-                val first = busList[0]
-                googleMap?.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(
-                        LatLng(
-                            first.latitude,
-                            first.longitude
-                        ), 14f))
-                viewModel.shouldMoveCamera = false
-            }
-
-            busList.forEach { bus ->
-                busMarkerCollection.addMarker(
-                    MarkerOptions()
-                        .position(LatLng(bus.latitude, bus.longitude))
-                        .title(bus.prefix)
-                        .snippet(bus.fullSign)
-                )?.tag = "ONIBUS"
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.busList.collect { busList ->
+                    updateBusMarkers(busList)
+                }
             }
         }
 
@@ -241,7 +227,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                             .setView(dialogView)
                             .create()
 
-                        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                        dialog.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
 
                         buttonClone.setOnClickListener {
                             dialog.dismiss()
@@ -259,6 +245,17 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
+        viewModel.isFavorite.observe(viewLifecycleOwner) { isFav ->
+            val icon = if (isFav) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+            binding.btnFavorite.setImageResource(icon)
+        }
+
+        binding.btnFavorite.setOnClickListener {
+            currentLine?.let { line ->
+                viewModel.toggleFavorite(line)
+            }
+        }
+
         viewModel.isLoading.observe(viewLifecycleOwner) { visible ->
             binding.progressBar.isVisible = visible
         }
@@ -266,15 +263,66 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
     private fun openRouteInMaps() {
         val stop = selectedStop ?: return
-        val uri = "google.navigation:q=${stop.latitude},${stop.longitude}&mode=w".toUri()
+        val uri = "http://maps.google.com/maps?daddr=${stop.latitude},${stop.longitude}&dirflg=w".toUri()
         val mapIntent = Intent(Intent.ACTION_VIEW, uri)
         mapIntent.setPackage("com.google.android.apps.maps")
 
         try {
             startActivity(mapIntent)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Toast.makeText(requireContext(),
                 getString(R.string.google_maps_error_message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateBusMarkers(busList: List<Bus>) {
+        if (googleMap == null) return
+
+        if (busList.isNotEmpty() && viewModel.shouldMoveCamera) {
+            val first = busList[0]
+            googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude, first.longitude), 14f))
+            viewModel.shouldMoveCamera = false
+        }
+
+        val currentBusIds = busList.map { it.prefix }.toSet()
+
+        val iterator = busMarkersMap.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.key !in currentBusIds) {
+                entry.value.remove()
+                iterator.remove()
+            }
+        }
+
+        busList.forEach { bus ->
+            val existingMarker = busMarkersMap[bus.prefix]
+
+            if (existingMarker != null) {
+                if (existingMarker.position.latitude != bus.latitude ||
+                    existingMarker.position.longitude != bus.longitude) {
+
+                    MarkerAnimator.animateMarkerToGB(
+                        existingMarker,
+                        LatLng(bus.latitude, bus.longitude),
+                        LatLngInterpolator.Linear()
+                    )
+                }
+                existingMarker.snippet = bus.fullSign
+
+            } else {
+                val markerOptions = MarkerOptions()
+                    .position(LatLng(bus.latitude, bus.longitude))
+                    .title(bus.prefix)
+                    .snippet(bus.fullSign)
+
+                val marker = busMarkerCollection.addMarker(markerOptions)
+
+                if (marker != null) {
+                    marker.tag = "ONIBUS"
+                    busMarkersMap[bus.prefix] = marker
+                }
+            }
         }
     }
 

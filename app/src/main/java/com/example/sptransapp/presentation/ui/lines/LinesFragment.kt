@@ -2,6 +2,8 @@ package com.example.sptransapp.presentation.ui.lines
 
 import android.content.Context
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -48,7 +50,6 @@ class LinesFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = LinesAdapter { line ->
             val bundle = bundleOf("selectedLine" to line)
-
             findNavController().navigate(R.id.nav_line_details, bundle)
         }
 
@@ -67,6 +68,17 @@ class LinesFragment : Fragment() {
                 false
             }
         }
+
+        binding.edittextSearchLines.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                if (s.isNullOrEmpty()) {
+                    viewModel.loadFavorites()
+                }
+            }
+        })
     }
 
     private fun performSearch() {
@@ -74,19 +86,30 @@ class LinesFragment : Fragment() {
         if (termo.isNotEmpty()) {
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.edittextSearchLines.windowToken, 0)
-
             viewModel.searchLine(termo)
+        } else {
+            viewModel.loadFavorites()
         }
     }
 
     private fun setupObservers() {
-        viewModel.foundLines.observe(viewLifecycleOwner) { lines ->
-            binding.textviewEmpty.isVisible = lines.isEmpty()
-            adapter.updateList(lines)
+        viewModel.displayedLines.observe(viewLifecycleOwner) { lines ->
 
-            if (lines.isEmpty() && binding.edittextSearchLines.text.isNotEmpty()) {
-                binding.textviewEmpty.text = getString(R.string.no_lines_found_message)
-            } else if (lines.isNotEmpty()) {
+            adapter.submitList(lines)
+
+            val isSearching = binding.edittextSearchLines.text.isNotEmpty()
+            val hasItems = lines.isNotEmpty()
+
+            binding.textviewListTitle.isVisible = !isSearching && hasItems
+
+            if (!hasItems) {
+                binding.textviewEmpty.isVisible = true
+                if (isSearching) {
+                    binding.textviewEmpty.text = getString(R.string.no_lines_found_message)
+                } else {
+                    binding.textviewEmpty.text = getString(R.string.no_fav_lines)
+                }
+            } else {
                 binding.textviewEmpty.isVisible = false
             }
         }

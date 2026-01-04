@@ -35,10 +35,17 @@
                 android:contentDescription="@string/bus_icon"
                 android:src="@drawable/ic_bus" />
 
+            <View
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/shape_circle"
+                android:backgroundTint="#EA4335" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="8dp"
                 android:text="@string/label_bus_moving"
                 android:textColor="#333333"
                 android:textSize="16sp" />
@@ -56,10 +63,17 @@
                 android:contentDescription="@string/stop_icon"
                 android:src="@drawable/ic_stop" />
 
+            <View
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/shape_circle"
+                android:backgroundTint="#4285F4" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="8dp"
                 android:text="@string/label_bus_stop"
                 android:textColor="#333333"
                 android:textSize="16sp" />

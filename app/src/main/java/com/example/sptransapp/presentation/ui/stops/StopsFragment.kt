@@ -194,7 +194,7 @@ class StopsFragment : Fragment(), OnMapReadyCallback {
         mapIntent.setPackage("com.google.android.apps.maps")
         try {
             startActivity(mapIntent)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Toast.makeText(requireContext(), getString(R.string.google_maps_error_message), Toast.LENGTH_SHORT).show()
         }
     }

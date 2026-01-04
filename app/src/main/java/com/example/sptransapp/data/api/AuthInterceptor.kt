@@ -59,7 +59,6 @@ class AuthInterceptor : Interceptor {
     }
 
     private fun shouldAuthenticate(response: Response): Boolean {
-        if (response.code == 401) return true
-        return false
+        return response.code == 401
     }
 }

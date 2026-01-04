@@ -59,4 +59,7 @@
     <string name="prediction_error_message">Erro na previsão: %1$s</string>
     <string name="search_corridor_error_message">Erro ao buscar corredores: %1$s</string>
     <string name="map_download_error_message">Erro ao baixar mapa de corredores: %1$s</string>
+    <string name="fav_icon">fav icon</string>
+    <string name="no_fav_lines">Você ainda não tem linhas favoritas.</string>
+    <string name="fav_lines">Linhas Favoritas:</string>
 </resources>

@@ -1,8 +1,13 @@
 package com.example.sptransapp.core.di
 
 import android.content.Context
+import androidx.room.Room
 import com.example.sptransapp.data.api.AuthInterceptor
 import com.example.sptransapp.data.api.SPTransApi
+import com.example.sptransapp.data.database.AppDatabase
+import com.example.sptransapp.data.database.CorridorDao
+import com.example.sptransapp.data.database.LineDao
+import com.example.sptransapp.data.database.StopDao
 import com.example.sptransapp.data.repository.BusRepositoryImpl
 import com.example.sptransapp.domain.repository.BusRepository
 import dagger.Module
@@ -23,6 +28,27 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "sptrans_db"
+        ).build()
+    }
+
+    @Provides
+    fun provideLineDao(database: AppDatabase): LineDao {
+        return database.lineDao()
+    }
+
+    @Provides
+    fun provideStopDao(database: AppDatabase): StopDao = database.stopDao()
+
+    @Provides
+    fun provideCorridorDao(database: AppDatabase): CorridorDao = database.corridorDao()
 
     @Provides
     @Singleton
@@ -90,8 +116,17 @@ object AppModule {
     @Singleton
     fun provideBusRepository(
         api: SPTransApi,
+        lineDao: LineDao,
+        stopDao: StopDao,
+        corridorDao: CorridorDao,
         @ApplicationContext context: Context
     ): BusRepository {
-        return BusRepositoryImpl(api, context)
+        return BusRepositoryImpl(
+            api = api,
+            lineDao = lineDao,
+            stopDao = stopDao,
+            corridorDao = corridorDao,
+            context = context
+        )
     }
 }

@@ -60,4 +60,7 @@
     <string name="prediction_error_message">Prediction error: %1$s</string>
     <string name="search_corridor_error_message">Error fetching corridors: %1$s</string>
     <string name="map_download_error_message">Error downloading map: %1$s</string>
+    <string name="fav_icon">fav icon</string>
+    <string name="no_fav_lines">You don\'t have any favorite lines yet.</string>
+    <string name="fav_lines">Favorite Lines</string>
 </resources>

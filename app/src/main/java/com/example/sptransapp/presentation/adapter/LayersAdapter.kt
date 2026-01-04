@@ -17,25 +17,52 @@ class LayersAdapter(
     private val onOptionClick: (LayerOption) -> Unit
 ) : RecyclerView.Adapter<LayersAdapter.ViewHolder>() {
 
+    private var selectedItemPosition: Int = RecyclerView.NO_POSITION
+
+    init {
+        selectedItemPosition = options.indexOfFirst { it.isSelected }
+    }
+
     inner class ViewHolder(private val binding: ItemLayerBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: LayerOption) {
             binding.textviewTitle.text = item.title
             binding.imageviewRouteIcon.setImageResource(item.iconRes)
+
             binding.checkboxSelected.isChecked = item.isSelected
 
             binding.root.setOnClickListener {
+                val currentPosition = adapterPosition
+                if (currentPosition == RecyclerView.NO_POSITION) return@setOnClickListener
 
-                val wasSelected = item.isSelected
-
-                options.forEach { it.isSelected = false }
-
-                if (!wasSelected) {
-                    item.isSelected = true
-                }
-
-                notifyDataSetChanged()
+                handleSelection(currentPosition)
                 onOptionClick(item)
             }
+
+            binding.checkboxSelected.setOnClickListener {
+                val currentPosition = adapterPosition
+                if (currentPosition != RecyclerView.NO_POSITION) {
+                    handleSelection(currentPosition)
+                    onOptionClick(item)
+                }
+            }
+        }
+    }
+
+    private fun handleSelection(newPosition: Int) {
+        if (selectedItemPosition == newPosition) {
+            options[newPosition].isSelected = false
+            notifyItemChanged(newPosition)
+            selectedItemPosition = RecyclerView.NO_POSITION
+        }
+        else {
+            if (selectedItemPosition != RecyclerView.NO_POSITION) {
+                options[selectedItemPosition].isSelected = false
+                notifyItemChanged(selectedItemPosition)
+            }
+
+            selectedItemPosition = newPosition
+            options[selectedItemPosition].isSelected = true
+            notifyItemChanged(selectedItemPosition)
         }
     }
 

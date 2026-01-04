@@ -5,6 +5,7 @@ import com.example.sptransapp.domain.model.Line
 import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Stop
 import com.example.sptransapp.domain.model.Prediction
+import kotlinx.coroutines.flow.Flow
 
 interface BusRepository {
     suspend fun getPositions(): List<Bus>
@@ -13,15 +14,23 @@ interface BusRepository {
 
     suspend fun getPositionsByLine(lineCode: Int): List<Bus>
 
-    suspend fun getStopsByLine(lineCode: Int): List<Stop>
+    fun getStopsByLine(lineCode: Int): Flow<List<Stop>>
 
     suspend fun getStopPredictions(lineCode: Int): List<Prediction>
 
-    suspend fun getCorridors(): List<Corridor>
+    fun getCorridors(): Flow<List<Corridor>>
 
     suspend fun getCorridorsKml(): java.io.InputStream?
 
     suspend fun getGeneralKml(): java.io.InputStream?
 
     suspend fun getOtherLanesKml(): java.io.InputStream?
+
+    fun getFavoriteLines(): Flow<List<Line>>
+
+    fun isFavorite(lineCode: Int): Flow<Boolean>
+
+    suspend fun toggleFavorite(line: Line)
+
+
 }

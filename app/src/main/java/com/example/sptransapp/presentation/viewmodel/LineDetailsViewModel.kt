@@ -7,15 +7,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sptransapp.R
 import com.example.sptransapp.domain.model.Bus
+import com.example.sptransapp.domain.model.Line
 import com.example.sptransapp.domain.model.Prediction
 import com.example.sptransapp.domain.model.Stop
-import com.example.sptransapp.domain.repository.BusRepository
+import com.example.sptransapp.domain.usecase.CheckIfFavoriteUseCase
+import com.example.sptransapp.domain.usecase.GetBusPositionsByLineUseCase
+import com.example.sptransapp.domain.usecase.GetMapLayerUseCase
+import com.example.sptransapp.domain.usecase.GetStopPredictionsUseCase
+import com.example.sptransapp.domain.usecase.GetStopsUseCase
+import com.example.sptransapp.domain.usecase.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -23,12 +37,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LineDetailsViewModel @Inject constructor(
-    private val repository: BusRepository,
+    private val getBusPositionsByLineUseCase: GetBusPositionsByLineUseCase,
+    private val getStopPredictionsUseCase: GetStopPredictionsUseCase,
+    private val getStopsUseCase: GetStopsUseCase,
+    private val getMapLayerUseCase: GetMapLayerUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
+    private val checkIfFavoriteUseCase: CheckIfFavoriteUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    private val _busList = MutableLiveData<List<Bus>>()
-    val busList: LiveData<List<Bus>> = _busList
 
     private val _stopList = MutableLiveData<List<Stop>>()
     val stopList: LiveData<List<Stop>> = _stopList
@@ -43,54 +59,55 @@ class LineDetailsViewModel @Inject constructor(
     val isLoading: LiveData<Boolean> = _isLoading
 
     private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+
+    private val _isFavorite = MutableLiveData<Boolean>()
+    val isFavorite: LiveData<Boolean> = _isFavorite
 
     var shouldMoveCamera = true
+
     private var refreshJob: Job? = null
-    private var currentLineCode: Int? = null
+
+    private val _currentLineCode = MutableStateFlow<Int?>(null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val busList: StateFlow<List<Bus>> = _currentLineCode
+        .filterNotNull()
+        .flatMapLatest { code ->
+            flow {
+                while (true) {
+                    try {
+                        val result = getBusPositionsByLineUseCase(code)
+                        emit(result)
+                    } catch (_: Exception) {
+                        emit(emptyList())
+                    }
+                    delay(15_000)
+                }
+            }
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     fun startMonitoring(lineCode: Int) {
-        if (currentLineCode == lineCode && refreshJob?.isActive == true) return
+        if (_currentLineCode.value == lineCode) return
 
-        currentLineCode = lineCode
+        _currentLineCode.value = lineCode
         shouldMoveCamera = true
 
         loadStops(lineCode)
-
-        startAutoRefresh {
-            repository.getPositionsByLine(lineCode)
-        }
-    }
-
-    private fun startAutoRefresh(action: suspend () -> List<Bus>) {
-        refreshJob?.cancel()
-        refreshJob = viewModelScope.launch {
-            _isLoading.value = true
-            while (isActive) {
-                try {
-                    val result = withContext(Dispatchers.IO) { action() }
-                    _busList.value = result
-                    _errorMessage.value = null
-                } catch (e: Exception) {
-                    _errorMessage.value = null
-                } finally {
-                    _isLoading.value = false
-                }
-                delay(15_000)
-            }
-        }
+        checkFavoriteStatus(lineCode)
     }
 
     private fun loadStops(lineCode: Int) {
         viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    repository.getStopsByLine(lineCode)
+            getStopsUseCase(lineCode)
+                .collect { stops ->
+                    _stopList.value = stops
                 }
-                _stopList.value = result
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
     }
 
@@ -99,7 +116,7 @@ class LineDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    repository.getStopPredictions(stopCode)
+                    getStopPredictionsUseCase(stopCode)
                 }
                 _predictions.value = result
             } catch (e: Exception) {
@@ -110,15 +127,13 @@ class LineDetailsViewModel @Inject constructor(
         }
     }
 
-    fun loadCorridorsMap() = loadKml { repository.getCorridorsKml() }
-    fun loadOtherLanesMap() = loadKml { repository.getOtherLanesKml() }
-    fun loadGeneralMap() = loadKml { repository.getGeneralKml() }
-
-    private fun loadKml(source: suspend () -> InputStream?) {
+    fun loadMapLayer(layerId: Int) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val inputStream = withContext(Dispatchers.IO) { source() }
+                val inputStream = withContext(Dispatchers.IO) {
+                    getMapLayerUseCase(layerId)
+                }
                 _kmlData.value = inputStream
             } catch (e: Exception) {
                 _errorMessage.value = context.getString(R.string.map_download_error_message, e.message)
@@ -130,6 +145,20 @@ class LineDetailsViewModel @Inject constructor(
 
     fun clearPredictions() {
         _predictions.value = emptyList()
+    }
+
+    fun checkFavoriteStatus(lineCode: Int) {
+        viewModelScope.launch {
+            checkIfFavoriteUseCase(lineCode).collect { isFav ->
+                _isFavorite.value = isFav
+            }
+        }
+    }
+
+    fun toggleFavorite(line: Line) {
+        viewModelScope.launch {
+            toggleFavoriteUseCase(line)
+        }
     }
 
     override fun onCleared() {

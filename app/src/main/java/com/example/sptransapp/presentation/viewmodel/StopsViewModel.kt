@@ -9,17 +9,22 @@ import com.example.sptransapp.R
 import com.example.sptransapp.domain.model.Line
 import com.example.sptransapp.domain.model.Prediction
 import com.example.sptransapp.domain.model.Stop
-import com.example.sptransapp.domain.repository.BusRepository
+import com.example.sptransapp.domain.usecase.GetStopPredictionsUseCase
+import com.example.sptransapp.domain.usecase.GetStopsUseCase
+import com.example.sptransapp.domain.usecase.SearchLinesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class StopsViewModel @Inject constructor(
-    private val repository: BusRepository,
+    private val searchLinesUseCase: SearchLinesUseCase,
+    private val getStopsUseCase: GetStopsUseCase,
+    private val getStopPredictionsUseCase: GetStopPredictionsUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -46,7 +51,7 @@ class StopsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    repository.searchLines(query)
+                    searchLinesUseCase(query)
                 }
                 _foundLines.value = result
             } catch (e: Exception) {
@@ -60,16 +65,15 @@ class StopsViewModel @Inject constructor(
     fun loadStops(lineCode: Int) {
         _isLoading.value = true
         viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    repository.getStopsByLine(lineCode)
+            getStopsUseCase(lineCode)
+                .catch { e ->
+                    _errorMessage.value = context.getString(R.string.att_error_message, e.message)
+                    _isLoading.value = false
                 }
-                _stopList.value = result
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.att_error_message, e.message)
-            } finally {
-                _isLoading.value = false
-            }
+                .collect { stops ->
+                    _stopList.value = stops
+                    _isLoading.value = false
+                }
         }
     }
 
@@ -78,7 +82,7 @@ class StopsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    repository.getStopPredictions(stopCode)
+                    getStopPredictionsUseCase(stopCode)
                 }
                 _predictions.value = result
             } catch (e: Exception) {
