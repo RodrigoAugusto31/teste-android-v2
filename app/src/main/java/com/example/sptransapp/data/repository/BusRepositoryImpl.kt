@@ -21,13 +21,7 @@ class BusRepositoryImpl(
         var response = api.getPositions()
 
         if (!response.isSuccessful || response.body() == null) {
-            val login = api.authenticate(BuildConfig.SPTRANS_TOKEN)
-
-            if (login.isSuccessful && login.body() == true) {
-                response = api.getPositions()
-            } else {
-                throw Exception(context.getString(R.string.error_sptrans_auth_failed))
-            }
+            throw Exception("Falha ao buscar posições")
         }
 
         val data = response.body() ?: return emptyList()
@@ -54,6 +48,10 @@ class BusRepositoryImpl(
     override suspend fun searchLines(term: String): List<Line> {
         val response = api.searchLines(term)
 
+        if (!response.isSuccessful || response.body() == null) {
+            throw Exception("Falha ao buscar posições")
+        }
+
         return response.body()?.map { dto ->
             Line(
                 lineCode = dto.lineCode,
@@ -71,6 +69,10 @@ class BusRepositoryImpl(
 
     override suspend fun getPositionsByLine(lineCode: Int): List<Bus> {
         var response = api.getPositionsByLine(lineCode)
+
+        if (!response.isSuccessful || response.body() == null) {
+            throw Exception("Falha ao buscar posições")
+        }
 
         if (!response.isSuccessful || response.body() == null) {
             val login = api.authenticate(BuildConfig.SPTRANS_TOKEN)
@@ -120,6 +122,10 @@ class BusRepositoryImpl(
     override suspend fun getStopsByLine(lineCode: Int): List<Stop> {
         val response = api.getStopsByLine(lineCode)
 
+        if (!response.isSuccessful || response.body() == null) {
+            throw Exception("Falha ao buscar posições")
+        }
+
         return response.body()?.map { dto ->
             Stop(
                 stopCode = dto.stopCode,
@@ -132,6 +138,10 @@ class BusRepositoryImpl(
 
     override suspend fun getStopPredictions(lineCode: Int): List<Prediction> {
         val response = api.getStopPredictions(lineCode)
+
+        if (!response.isSuccessful || response.body() == null) {
+            throw Exception("Falha ao buscar posições")
+        }
 
         val data = response.body() ?: return emptyList()
         val predictionList = mutableListOf<Prediction>()
@@ -154,6 +164,10 @@ class BusRepositoryImpl(
     override suspend fun getCorridors(): List<Corridor> {
         val response = api.getCorridors()
 
+        if (!response.isSuccessful || response.body() == null) {
+            throw Exception("Falha ao buscar posições")
+        }
+
         return response.body()?.map { dto ->
             Corridor(
                 code = dto.code ?: 0,
@@ -164,6 +178,7 @@ class BusRepositoryImpl(
 
     override suspend fun getCorridorsKml(): java.io.InputStream? {
         val response = api.getCorridorsKml()
+
         if (response.isSuccessful && response.body() != null) {
             return KmlHelper.extractKmlFromKmz(response.body()!!)
         }

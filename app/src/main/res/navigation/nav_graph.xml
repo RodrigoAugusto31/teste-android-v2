@@ -7,25 +7,25 @@
 
     <fragment
         android:id="@+id/nav_lines"
-        android:name="com.example.sptransapp.presentation.ui.LinesFragment"
+        android:name="com.example.sptransapp.presentation.ui.lines.LinesFragment"
         android:label="@string/route_lines"
         tools:layout="@layout/fragment_lines" />
 
     <fragment
         android:id="@+id/nav_bus"
-        android:name="com.example.sptransapp.presentation.ui.BusFragment"
+        android:name="com.example.sptransapp.presentation.ui.bus.BusFragment"
         android:label="@string/route_bus"
         tools:layout="@layout/fragment_bus" />
 
     <fragment
         android:id="@+id/nav_stops"
-        android:name="com.example.sptransapp.presentation.ui.StopsFragment"
+        android:name="com.example.sptransapp.presentation.ui.stops.StopsFragment"
         android:label="@string/route_stop"
         tools:layout="@layout/fragment_stops" />
 
     <fragment
         android:id="@+id/nav_line_details"
-        android:name="com.example.sptransapp.presentation.ui.LineDetailsFragment"
+        android:name="com.example.sptransapp.presentation.ui.lines.LineDetailsFragment"
         android:label="@string/route_lines_details"
         tools:layout="@layout/fragment_line_details" />
 </navigation>

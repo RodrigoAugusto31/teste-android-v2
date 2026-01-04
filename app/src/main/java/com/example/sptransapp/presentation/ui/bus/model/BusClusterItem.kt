@@ -1,4 +1,4 @@
-package com.example.sptransapp.presentation.ui.model
+package com.example.sptransapp.presentation.ui.bus.model
 
 import com.example.sptransapp.domain.model.Bus
 import com.google.android.gms.maps.model.LatLng

@@ -1,22 +1,22 @@
-package com.example.sptransapp.presentation.ui
+package com.example.sptransapp.presentation.ui.bus
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import com.example.sptransapp.R
-import com.example.sptransapp.data.api.RetrofitClient
-import com.example.sptransapp.data.repository.BusRepositoryImpl
 import com.example.sptransapp.databinding.FragmentBusBinding
 import com.example.sptransapp.domain.model.Line
-import com.example.sptransapp.presentation.ui.model.BusClusterItem
-import com.example.sptransapp.presentation.viewmodel.MapViewModel
-import com.example.sptransapp.presentation.viewmodel.MapViewModelFactory
+import com.example.sptransapp.presentation.ui.common.LineSelectionBottomSheet
+import com.example.sptransapp.presentation.ui.bus.model.BusClusterItem
+import com.example.sptransapp.presentation.viewmodel.BusViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -27,17 +27,18 @@ import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolygonManager
 import com.google.maps.android.collections.PolylineManager
+import com.google.maps.android.data.kml.KmlLayer
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class BusFragment : Fragment(), OnMapReadyCallback {
 
     private var _binding: FragmentBusBinding? = null
     private val binding get() = _binding!!
 
     private var googleMap: GoogleMap? = null
-    private var shouldMoveCamera = false
 
     private lateinit var clusterManager: ClusterManager<BusClusterItem>
-
     private lateinit var markerManager: MarkerManager
     private lateinit var polygonManager: PolygonManager
     private lateinit var polylineManager: PolylineManager
@@ -45,15 +46,7 @@ class BusFragment : Fragment(), OnMapReadyCallback {
 
     private var isSearchingFromThisScreen = false
 
-    private val viewModel: MapViewModel by activityViewModels {
-        MapViewModelFactory(
-            repository = BusRepositoryImpl(
-                api = RetrofitClient.api,
-                context = requireContext().applicationContext
-            ),
-            context = requireContext().applicationContext
-        )
-    }
+    private val viewModel: BusViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -68,12 +61,8 @@ class BusFragment : Fragment(), OnMapReadyCallback {
         setupMap()
         setupUI()
 
-        val currentLine = viewModel.selectedLine.value
-        if (currentLine != null) {
-            binding.edittextSearchBus.setText(currentLine.fullSign)
-            binding.btnClearFilter.isVisible = true
-        } else if (viewModel.busList.value.isNullOrEmpty()) {
-            viewModel.fetchBuses()
+        if (viewModel.busList.value.isNullOrEmpty()) {
+            viewModel.fetchInitialBuses()
         }
     }
 
@@ -98,7 +87,8 @@ class BusFragment : Fragment(), OnMapReadyCallback {
         binding.btnClearFilter.setOnClickListener {
             binding.edittextSearchBus.text.clear()
             binding.btnClearFilter.isVisible = false
-            viewModel.fetchBuses()
+
+            viewModel.clearFilter()
             Toast.makeText(requireContext(),
                 getString(R.string.showing_bus_data_message), Toast.LENGTH_SHORT).show()
         }
@@ -107,7 +97,7 @@ class BusFragment : Fragment(), OnMapReadyCallback {
     private fun performSearch() {
         val termo = binding.edittextSearchBus.text.toString()
         if (termo.isNotEmpty()) {
-            val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.edittextSearchBus.windowToken, 0)
             isSearchingFromThisScreen = true
             viewModel.searchLine(termo)
@@ -139,14 +129,17 @@ class BusFragment : Fragment(), OnMapReadyCallback {
 
     private fun setupObservers() {
         viewModel.busList.observe(viewLifecycleOwner) { listaOnibus ->
-
             clusterManager.clearItems()
 
-            if ((viewModel.deveMoverCamera || shouldMoveCamera) && listaOnibus.isNotEmpty()) {
+            if (viewModel.shouldMoveCamera && listaOnibus.isNotEmpty()) {
                 val first = listaOnibus[0]
-                googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude, first.longitude), 14f))
-                viewModel.deveMoverCamera = false
-                shouldMoveCamera = false
+                googleMap?.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(
+                            first.latitude,
+                            first.longitude
+                        ), 14f))
+                viewModel.shouldMoveCamera = false
             }
 
             val clusterItems = listaOnibus.map { onibus ->
@@ -178,7 +171,7 @@ class BusFragment : Fragment(), OnMapReadyCallback {
         viewModel.kmlData.observe(viewLifecycleOwner) { inputStream ->
             if (inputStream != null && googleMap != null) {
                 try {
-                    val layer = com.google.maps.android.data.kml.KmlLayer(
+                    val layer = KmlLayer(
                         googleMap,
                         inputStream,
                         requireContext(),
@@ -210,23 +203,18 @@ class BusFragment : Fragment(), OnMapReadyCallback {
 
     private fun showLineSelectionDialog(lines: List<Line>) {
         val bottomSheet = LineSelectionBottomSheet(lines) { selectedLine ->
-            binding.edittextSearchBus.setText(selectedLine.fullSign)
-            binding.btnClearFilter.isVisible = true
 
             clusterManager.clearItems()
             clusterManager.cluster()
 
             viewModel.clearSearchResults()
-
-            shouldMoveCamera = true
-            viewModel.loadBusesByLine(selectedLine.lineCode)
+            viewModel.loadBusesByLine(selectedLine)
         }
-        bottomSheet.show(parentFragmentManager, LineSelectionBottomSheet.TAG)
+        bottomSheet.show(parentFragmentManager, LineSelectionBottomSheet.Companion.TAG)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        viewModel.clearSearchResults()
         _binding = null
     }
 }

@@ -1,23 +1,28 @@
-package com.example.sptransapp.presentation.ui
+package com.example.sptransapp.presentation.ui.lines
 
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.sptransapp.R
-import com.example.sptransapp.data.api.RetrofitClient
-import com.example.sptransapp.data.repository.BusRepositoryImpl
 import com.example.sptransapp.databinding.FragmentLineDetailsBinding
+import com.example.sptransapp.domain.model.Line
 import com.example.sptransapp.domain.model.Stop
-import com.example.sptransapp.presentation.viewmodel.MapViewModel
-import com.example.sptransapp.presentation.viewmodel.MapViewModelFactory
+import com.example.sptransapp.presentation.ui.common.PredictionBottomSheet
+import com.example.sptransapp.presentation.viewmodel.LineDetailsViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -27,27 +32,23 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolylineManager
+import com.google.maps.android.data.kml.KmlLayer
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
     private var _binding: FragmentLineDetailsBinding? = null
     private val binding get() = _binding!!
 
     private var googleMap: GoogleMap? = null
-
-    private var currentKmlLayer: com.google.maps.android.data.kml.KmlLayer? = null
+    private var currentKmlLayer: KmlLayer? = null
     private var selectedLayerId: Int? = null
     private var selectedStop: Stop? = null
 
-    private val viewModel: MapViewModel by activityViewModels {
-        MapViewModelFactory(
-            repository = BusRepositoryImpl(
-                api = RetrofitClient.api,
-                context = requireContext().applicationContext
-            ),
-            context = requireContext().applicationContext
-        )
-    }
+    private var currentLine: Line? = null
+
+    private val viewModel: LineDetailsViewModel by viewModels()
 
     private lateinit var markerManager: MarkerManager
     private lateinit var busMarkerCollection: MarkerManager.Collection
@@ -62,8 +63,22 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel.clearPredictions()
+
+        currentLine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arguments?.getParcelable("selectedLine", Line::class.java)
+        } else {
+            arguments?.getParcelable("selectedLine")
+        }
+
+        if (currentLine == null) {
+            Toast.makeText(context, "Erro ao carregar linha", Toast.LENGTH_SHORT).show()
+            findNavController().popBackStack()
+            return
+        }
+
+        viewModel.startMonitoring(currentLine!!.lineCode)
         setupUI()
+
         val mapFragment = childFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment?
         mapFragment?.getMapAsync(this)
     }
@@ -78,10 +93,10 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                 selectedLayerId = newId
                 handleLayerSelection(newId)
             }
-            bottomSheet.show(parentFragmentManager, LayersBottomSheet.TAG)
+            bottomSheet.show(parentFragmentManager, LayersBottomSheet.Companion.TAG)
         }
 
-        viewModel.selectedLine.value?.let { line ->
+        currentLine?.let { line ->
             binding.textviewSign.text = line.fullSign
             binding.textviewName.text = line.name.lowercase().replaceFirstChar { it.uppercase() }
         }
@@ -138,11 +153,18 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
     private fun setupObservers() {
         viewModel.busList.observe(viewLifecycleOwner) { busList ->
             busMarkerCollection.clear()
-            if (busList.isNotEmpty() && viewModel.deveMoverCamera) {
-                val primeiro = busList[0]
-                googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(primeiro.latitude, primeiro.longitude), 14f))
-                viewModel.deveMoverCamera = false
+
+            if (busList.isNotEmpty() && viewModel.shouldMoveCamera) {
+                val first = busList[0]
+                googleMap?.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(
+                            first.latitude,
+                            first.longitude
+                        ), 14f))
+                viewModel.shouldMoveCamera = false
             }
+
             busList.forEach { bus ->
                 busMarkerCollection.addMarker(
                     MarkerOptions()
@@ -155,7 +177,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
 
         viewModel.stopList.observe(viewLifecycleOwner) { stopList ->
             stopsMarkerCollection.clear()
-            routePolylineCollection.clear()
+
             if (stopList.isNotEmpty()) {
                 stopList.forEach { stop ->
                     stopsMarkerCollection.addMarker(
@@ -171,11 +193,10 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
         viewModel.predictions.observe(viewLifecycleOwner) { list ->
             if (isVisible && list.isNotEmpty()) {
                 val stopName = selectedStop?.name ?: getString(R.string.stop_label)
-
                 val bottomSheet = PredictionBottomSheet(stopName, list) {
                     openRouteInMaps()
                 }
-                bottomSheet.show(parentFragmentManager, PredictionBottomSheet.TAG)
+                bottomSheet.show(parentFragmentManager, PredictionBottomSheet.Companion.TAG)
             } else if (isVisible && selectedStop != null) {
                 Toast.makeText(requireContext(),
                     getString(R.string.no_stop_prediction_message), Toast.LENGTH_SHORT).show()
@@ -187,7 +208,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                 try {
                     currentKmlLayer?.removeLayerFromMap()
 
-                    val layer = com.google.maps.android.data.kml.KmlLayer(
+                    val layer = KmlLayer(
                         googleMap,
                         inputStream,
                         requireContext(),
@@ -202,10 +223,10 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                     layer.setOnFeatureClickListener { feature ->
                         val name = feature.getProperty("name") ?: getString(R.string.info_label)
                         val rawDescription = feature.getProperty("description") ?: ""
-                        val formattedDesc = android.text.Html.fromHtml(rawDescription, android.text.Html.FROM_HTML_MODE_COMPACT)
+                        val formattedDesc = Html.fromHtml(rawDescription, Html.FROM_HTML_MODE_COMPACT)
                         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_info_kml, null)
-                        val textViewTitle = dialogView.findViewById<android.widget.TextView>(R.id.textview_tittle)
-                        val textViewDescription = dialogView.findViewById<android.widget.TextView>(R.id.textview_description)
+                        val textViewTitle = dialogView.findViewById<TextView>(R.id.textview_tittle)
+                        val textViewDescription = dialogView.findViewById<TextView>(R.id.textview_description)
                         val buttonClone = dialogView.findViewById<View>(R.id.btn_close)
 
                         textViewTitle.text = name
@@ -220,7 +241,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
                             .setView(dialogView)
                             .create()
 
-                        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
                         buttonClone.setOnClickListener {
                             dialog.dismiss()
@@ -246,7 +267,7 @@ class LineDetailsFragment : Fragment(), OnMapReadyCallback {
     private fun openRouteInMaps() {
         val stop = selectedStop ?: return
         val uri = "google.navigation:q=${stop.latitude},${stop.longitude}&mode=w".toUri()
-        val mapIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
         mapIntent.setPackage("com.google.android.apps.maps")
 
         try {

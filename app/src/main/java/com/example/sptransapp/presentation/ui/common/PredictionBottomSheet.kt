@@ -1,4 +1,4 @@
-package com.example.sptransapp.presentation.ui
+package com.example.sptransapp.presentation.ui.common
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,7 +9,8 @@ import com.example.sptransapp.domain.model.Prediction
 import com.example.sptransapp.presentation.adapter.PredictionAdapter
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-class PredictionBottomSheet(
+class
+PredictionBottomSheet(
     private val stopName: String,
     private val predictions: List<Prediction>,
     private val onRouteClick: () -> Unit

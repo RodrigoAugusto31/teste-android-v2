@@ -1,38 +1,32 @@
-package com.example.sptransapp.presentation.ui
+package com.example.sptransapp.presentation.ui.lines
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.sptransapp.R
-import com.example.sptransapp.data.api.RetrofitClient
-import com.example.sptransapp.data.repository.BusRepositoryImpl
 import com.example.sptransapp.databinding.FragmentLinesBinding
 import com.example.sptransapp.presentation.adapter.LinesAdapter
-import com.example.sptransapp.presentation.viewmodel.MapViewModel
-import com.example.sptransapp.presentation.viewmodel.MapViewModelFactory
+import com.example.sptransapp.presentation.viewmodel.LinesViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class LinesFragment : Fragment() {
 
     private var _binding: FragmentLinesBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: MapViewModel by activityViewModels {
-        MapViewModelFactory(
-            repository = BusRepositoryImpl(
-                api = RetrofitClient.api,
-                context = requireContext().applicationContext
-            ),
-            context = requireContext().applicationContext
-        )
-    }
+    private val viewModel: LinesViewModel by viewModels()
 
     private lateinit var adapter: LinesAdapter
 
@@ -53,9 +47,9 @@ class LinesFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = LinesAdapter { line ->
-            viewModel.selectLine(line)
+            val bundle = bundleOf("selectedLine" to line)
 
-            findNavController().navigate(R.id.nav_line_details)
+            findNavController().navigate(R.id.nav_line_details, bundle)
         }
 
         binding.recyclerviewLines.layoutManager = LinearLayoutManager(requireContext())
@@ -78,7 +72,7 @@ class LinesFragment : Fragment() {
     private fun performSearch() {
         val termo = binding.edittextSearchLines.text.toString()
         if (termo.isNotEmpty()) {
-            val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.edittextSearchLines.windowToken, 0)
 
             viewModel.searchLine(termo)

@@ -1,5 +1,7 @@
-package com.example.sptransapp.presentation.ui
+package com.example.sptransapp.presentation.ui.main
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AlertDialog
@@ -9,7 +11,9 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.sptransapp.R
 import com.example.sptransapp.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
@@ -41,7 +45,7 @@ class MainActivity : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
-        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
         dialogView.findViewById<View>(R.id.btn_close_legend).setOnClickListener {
             dialog.dismiss()
