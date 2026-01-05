@@ -5,9 +5,9 @@ import androidx.room.Room
 import com.example.sptransapp.data.api.AuthInterceptor
 import com.example.sptransapp.data.api.SPTransApi
 import com.example.sptransapp.data.database.AppDatabase
-import com.example.sptransapp.data.database.CorridorDao
-import com.example.sptransapp.data.database.LineDao
-import com.example.sptransapp.data.database.StopDao
+import com.example.sptransapp.data.database.dao.CorridorDao
+import com.example.sptransapp.data.database.dao.LineDao
+import com.example.sptransapp.data.database.dao.StopDao
 import com.example.sptransapp.data.repository.BusRepositoryImpl
 import com.example.sptransapp.domain.repository.BusRepository
 import dagger.Module

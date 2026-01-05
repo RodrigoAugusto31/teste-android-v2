@@ -1,4 +1,4 @@
-package com.example.sptransapp.data.database
+package com.example.sptransapp.data.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

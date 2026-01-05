@@ -1,10 +1,11 @@
-package com.example.sptransapp.data.database
+package com.example.sptransapp.data.database.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.sptransapp.data.database.entity.LineEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -12,7 +13,7 @@ interface LineDao {
     @Query("SELECT * FROM favorite_lines")
     fun getAllFavorites(): Flow<List<LineEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insert(line: LineEntity)
 
     @Delete

@@ -4,10 +4,10 @@ import android.content.Context
 import com.example.sptransapp.BuildConfig
 import com.example.sptransapp.R
 import com.example.sptransapp.data.api.SPTransApi
-import com.example.sptransapp.data.database.CorridorDao
-import com.example.sptransapp.data.database.LineDao
-import com.example.sptransapp.data.database.StopDao
-import com.example.sptransapp.data.database.toEntity
+import com.example.sptransapp.data.database.dao.CorridorDao
+import com.example.sptransapp.data.database.dao.LineDao
+import com.example.sptransapp.data.database.dao.StopDao
+import com.example.sptransapp.data.database.entity.toEntity
 import com.example.sptransapp.data.utils.KmlHelper
 import com.example.sptransapp.domain.model.Bus
 import com.example.sptransapp.domain.model.Corridor
