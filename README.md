@@ -1,69 +1,47 @@
-# 🏆 Teste Android
+# SPTransApp
 
-![Aiko](imagens/aiko.png)
+Este é um aplicativo Android que consome a API [Olho Vivo](http://www.sptrans.com.br/desenvolvedores/APIOlhoVivo/Documentacao.aspx) da SPTrans para fornecer informações em tempo real sobre o transporte público da cidade de São Paulo.
 
-Neste desafio, iremos avaliar seu conhecimento técnico e a metodologia aplicada no desenvolvimento de aplicações Android nativas.  
+## Funcionalidades
 
-## 🚀 O Desafio  
+*   **Pesquisa de Linhas**: Encontre linhas de ônibus pelo nome ou número.
+*   **Visualização no Mapa**: Veja a posição dos ônibus em tempo real no mapa.
+*   **Previsão de Chegada**: Consulte a previsão de chegada dos ônibus em uma determinada parada.
+*   **Paradas de Ônibus**: Visualize as paradas de uma linha específica.
+*   **Corredores de Ônibus**: Exibe os corredores de ônibus da cidade no mapa.
+*   **Favoritos**: Salve suas linhas de ônibus favoritas para acesso rápido (funcionalidade inferida a partir dos casos de uso `GetFavoritesUseCase` e `ToggleFavoriteUseCase`).
 
-Seu objetivo é criar um aplicativo Android que exiba dados sobre o **transporte público da cidade de São Paulo**, consumindo a [API **Olho Vivo**](api.md), que fornece informações em tempo real sobre a frota de ônibus da cidade.  
+## Arquitetura
 
-### 🎯 Requisitos Obrigatórios  
+O projeto segue os princípios da **Arquitetura Limpa (Clean Architecture)**, dividindo o código em três camadas principais:
 
-O projeto deve contemplar as seguintes funcionalidades:  
+*   **Presentation**: Camada de interface com o usuário (Activities, Fragments, ViewModels), utilizando o padrão MVVM.
+*   **Domain**: Camada de regras de negócio da aplicação (Use Cases).
+*   **Data**: Camada de acesso a dados, responsável por buscar informações da API da SPTrans (usando Retrofit) e do banco de dados local (usando Room).
 
-- **Posições dos veículos** – Exibir no mapa onde os ônibus estavam na última atualização.  
-- **Linhas** – Listar e exibir detalhes sobre as linhas de ônibus disponíveis.  
-- **Paradas** – Exibir os pontos de parada da cidade no mapa.  
-- **Previsão de chegada** – Informar a previsão de chegada dos veículos para uma parada selecionada.  
-- **Pesquisa e Filtros** – Permitir que o usuário pesquise e filtre os dados exibidos.  
+A **Injeção de Dependência** é gerenciada pelo [Hilt](https://developer.android.com/training/dependency-injection/hilt-android).
 
-## 🛠️ Regras do Teste  
+## Tecnologias Utilizadas
 
-### ✅ O que é permitido  
+*   [Kotlin](https://kotlinlang.org/): Linguagem de programação principal.
+*   [Coroutines](https://kotlinlang.org/docs/coroutines-overview.html): Para gerenciamento de tarefas assíncronas.
+*   [Android Jetpack](https://developer.android.com/jetpack):
+    *   [ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel): Para gerenciar dados da UI de forma consciente do ciclo de vida.
+    *   [LiveData](https://developer.android.com/topic/libraries/architecture/livedata): Para notificar a UI sobre mudanças nos dados.
+    *   [Navigation Component](https://developer.android.com/guide/navigation): Para gerenciar a navegação entre as telas.
+    *   [Room](https://developer.android.com/training/data-storage/room): Para persistência de dados local.
+*   [Retrofit](https://square.github.io/retrofit/): Para realizar chamadas de rede à API da SPTrans.
+*   [Hilt](https://developer.android.com/training/dependency-injection/hilt-android): Para injeção de dependência.
+*   [Google Maps SDK](https://developers.google.com/maps/documentation/android-sdk/start): Para exibição dos mapas.
 
-- **Desenvolvimento Android Nativo** utilizando **Java ou Kotlin**.  
+## Como Compilar e Executar
 
-### ❌ O que não é permitido  
-
-- Utilizar bibliotecas ou códigos de terceiros que implementem diretamente algum dos requisitos do desafio.  
-
-## 💡 Recomendações  
-
-- **Padrão de Código** – Utilize um **Linter** para manter a formatação do código consistente.  
-- **Organização** – Estruture o código seguindo boas práticas e padrões arquiteturais (MVVM, Clean Architecture, etc.).  
-
-## 🌟 Extras  
-
-Se quiser ir além dos requisitos obrigatórios, aqui estão algumas ideias que podem agregar ainda mais valor ao seu teste:  
-
-- **Refresh Automático** – Atualização periódica das informações sem necessidade de interação do usuário.  
-- **Cálculo de Rotas** – Exibir rotas de ônibus para uma parada ou a melhor rota do usuário até uma parada (Google Maps API ou similar).  
-- **Corredores de Ônibus** – Mostrar informações sobre os corredores de ônibus de São Paulo.  
-- **Velocidade das Vias** – Exibir informações sobre velocidades das vias utilizadas pelos ônibus.  
-- **Testes Automatizados** – Implementar testes unitários e/ou instrumentados.  
-- **Documentação** – Criar um **README.md** detalhando as decisões técnicas, funcionalidades implementadas e instruções de uso do projeto.  
-
-## 📦 Entrega  
-
-Para submeter o teste, siga as etapas abaixo:  
-
-1. Faça um **fork** deste repositório e clone-o em sua máquina.  
-2. Crie uma **branch** com o nome no formato `teste/[SEU_NOME]`.  
-    - **Exemplos:**  
-      - `teste/fulano-da-silva`  
-      - `teste/beltrano-primeiro-gomes`  
-3. Desenvolva e **faça commits** na sua branch com a implementação do desafio.  
-4. Grave um **vídeo demonstrando a solução desenvolvida** e passando pelo código.  
-   - O vídeo pode ser postado no **YouTube como "Não listado"**.  
-   - O **link do vídeo deve estar no `README.md` do seu projeto** ou no **Pull Request**.
-5. Após finalizar, **realize um Pull Request (PR)** para este repositório.  
-
-## 📌 Considerações  
-
-- **Qualquer tecnologia adicional ou abordagem diferente pode ser utilizada**, desde que seja devidamente **justificada no README.md**.  
-- **A estrutura do código e da solução será avaliada**, então priorize boas práticas, organização e clareza no desenvolvimento.  
-- Se tiver dúvidas, **sinta-se à vontade para perguntar**.  
-
-
-📩 **Boa sorte! Estamos ansiosos para ver seu código e sua apresentação!** 🚀
+1.  Clone este repositório.
+2.  Abra o projeto no Android Studio.
+3.  Crie um arquivo `local.properties` na raiz do projeto, caso ele não exista.
+4.  Adicione as seguintes chaves a este arquivo com seus respectivos tokens de acesso:
+    ```properties
+    SPTRANS_TOKEN="SEU_TOKEN_DA_SPTRANS"
+    MAPS_API_KEY="SUA_CHAVE_DO_GOOGLE_MAPS"
+    ```
+5.  Compile e execute o aplicativo em um emulador ou dispositivo Android.
